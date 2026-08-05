@@ -13,6 +13,7 @@ import {
   getEngagementHealthScoreboard,
 } from "../engagementHealthService.js";
 import { getDmmHealthAssessments } from "../dmmHealthService.js";
+import { getHealthMap } from "../healthMapService.js";
 import { getLatestQuarter, listQuarters } from "../healthService.js";
 import { quarterEndParam } from "../quarterDates.js";
 import {
@@ -213,6 +214,17 @@ analyticsRouter.get("/dmm-health", async (req, res, next) => {
       search: req.query.search ? z.string().parse(req.query.search) : undefined,
     };
     const result = await getDmmHealthAssessments(date, filters);
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Health Map: Dash_EngagementGeo + DMM scores + density-based spread radii. */
+analyticsRouter.get("/health-map", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const result = await getHealthMap(date);
     res.json(result);
   } catch (e) {
     next(e);

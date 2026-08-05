@@ -13,7 +13,8 @@
     "build": "npm run build --prefix client && npm run build --prefix server",
     "build:vercel": "node scripts/build-vercel-api.mjs && npm run build --prefix client",
     "start": "npm run start --prefix server",
-    "seed:dash": "python scripts/create_and_seed_dash_tables.py"
+    "seed:dash": "python scripts/create_and_seed_dash_tables.py",
+    "seed:geo": "python scripts/seed_dash_engagement_geo.py"
   },
   "dependencies": {
     "cors": "^2.8.5",

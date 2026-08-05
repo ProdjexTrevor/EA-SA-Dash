@@ -311,6 +311,44 @@ export type EngagementHealthSummary = {
   by_band: Record<HealthBandLabel, number>;
 };
 
+export type HealthMapPoint = {
+  engagement_id: number;
+  engagement_name: string;
+  country: string;
+  region: string;
+  latitude: number;
+  longitude: number;
+  locality: string | null;
+  population_local: number | null;
+  pop_density_per_km2: number;
+  urban_rural: string | null;
+  is_demo: boolean;
+  geocode_source: string;
+  health_score: number;
+  classification: string;
+  movement_verified: boolean;
+  summary: string;
+  heat: number;
+  spread_radius_mi: number;
+  healthy_ideal_radius_mi: number;
+  estimated_people_in_radius: number;
+  density_factor: number;
+  score_factor: number;
+  assessment: DmmAssessment;
+};
+
+export type HealthMapResponse = {
+  quarter_end: string;
+  points: HealthMapPoint[];
+  legend: { heat: string; spread: string; data_note: string };
+  summary: {
+    points: number;
+    avg_health_score: number;
+    avg_spread_mi: number;
+    total_estimated_people_in_radii: number;
+  };
+};
+
 export type DmmClassification =
   | "Sustained Movement"
   | "Movement"
@@ -455,6 +493,8 @@ export const api = {
     if (params.search) q.set("search", params.search);
     return get<DmmHealthResponse>(`/api/analytics/dmm-health?${q}`);
   },
+  analyticsHealthMap: (date: string) =>
+    get<HealthMapResponse>(`/api/analytics/health-map?date=${encodeURIComponent(date)}`),
 
   quarters: () => get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/data-health/quarters"),
   summary: (date?: string) => get<HealthSummary>(`/api/data-health/summary${date ? `?date=${date}` : ""}`),
