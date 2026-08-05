@@ -29,14 +29,16 @@ Created in the same MySQL database as production (`newgendata`). MySQL user cann
 
 `is_demo = 1` marks Moon / fictional rows.
 
-### Seed / refresh (from parent New Gen Data project, or copy the script)
+### Seed / refresh
 
 ```powershell
-# From c:\Repos\New Gen Data
-python scripts/create_and_seed_dash_tables.py
+cd EA-SA-Dash
+# Requires MYSQL_* in .env (same DigitalOcean DB is fine)
+npm run seed:dash
+# or: python scripts/create_and_seed_dash_tables.py
 ```
 
-This **truncates** `Dash_*` tables, re-copies all EA + SA history from `all_data`, and re-seeds The Moon (2018–Q1’26 quarters).
+This **truncates** `Dash_*` tables, re-copies all EA + SA history from production `all_data`, and re-seeds The Moon (quarters 2018–Q1’26).
 
 ---
 
