@@ -394,6 +394,16 @@ export function HealthCheckPage() {
                     </span>
                   </div>
                   <p className="mt-3 text-sm leading-relaxed text-slate-800">{selected.summary}</p>
+                  {selected.engagement_id != null && (
+                    <p className="mt-2">
+                      <a
+                        href={`/engagement/${selected.engagement_id}?date=${normalizeQuarterDate(selected.reporting_period) || quarter}`}
+                        className="text-sm font-semibold text-teal-700 hover:underline"
+                      >
+                        Open full profile →
+                      </a>
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-2">
                     <SimpleBand band={selected.baptism_simple_band} label="Baptisms" />
                     <SimpleBand

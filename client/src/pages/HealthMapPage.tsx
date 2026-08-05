@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Circle,
   CircleMarker,
@@ -321,6 +322,13 @@ function DetailPanel({
 
       <p className="text-[11px] text-slate-500">
         {point.movement_verified ? "Movement verified" : "Not a verified movement"}
+        {" · "}
+        <Link
+          to={`/engagement/${point.engagement_id}`}
+          className="font-medium text-teal-700 hover:underline"
+        >
+          Full profile
+        </Link>
       </p>
     </div>
   );
@@ -351,10 +359,24 @@ export function HealthMapPage() {
   const [showProvinces, setShowProvinces] = useState(true);
   const [showDistricts, setShowDistricts] = useState(false);
   const [showVillages, setShowVillages] = useState(false);
+  const [showCoverage, setShowCoverage] = useState(false);
   const [showCities, setShowCities] = useState(true);
   const [adm1, setAdm1] = useState<BoundaryFC | null>(null);
   const [adm2, setAdm2] = useState<BoundaryFC | null>(null);
   const [places, setPlaces] = useState<PlaceRow[]>([]);
+  const [coverage, setCoverage] = useState<
+    Array<{
+      kind: string;
+      id: string;
+      label: string;
+      latitude: number;
+      longitude: number;
+      note: string;
+      engagement_id?: number;
+      health_score?: number;
+      nearest_engagement_km?: number;
+    }>
+  >([]);
   const [layerNote, setLayerNote] = useState("");
   const [villageStatus, setVillageStatus] = useState("");
   const [villageCount, setVillageCount] = useState(0);
@@ -399,6 +421,16 @@ export function HealthMapPage() {
       .then((fc) => setAdm2(fc as BoundaryFC))
       .catch(() => setAdm2(null));
   }, [showDistricts, adm2]);
+
+  useEffect(() => {
+    if (!showCoverage) return;
+    const date = normalizeQuarterDate(quarter);
+    if (!date) return;
+    api
+      .analyticsCoverageGaps(date, 50)
+      .then((r) => setCoverage(r.opportunities))
+      .catch(() => setCoverage([]));
+  }, [showCoverage, quarter]);
 
   useEffect(() => {
     const date = normalizeQuarterDate(quarter);
@@ -484,6 +516,7 @@ export function HealthMapPage() {
             [showProvinces, setShowProvinces, "Provinces"] as const,
             [showDistricts, setShowDistricts, "Districts"] as const,
             [showVillages, setShowVillages, "Villages"] as const,
+            [showCoverage, setShowCoverage, "Gaps"] as const,
             [showCities, setShowCities, "Towns"] as const,
             [showPlaceLabels, setShowPlaceLabels, "Labels"] as const,
             [showBoundaries, setShowBoundaries, "Borders"] as const,
@@ -676,6 +709,14 @@ export function HealthMapPage() {
                             >
                               Open details
                             </button>
+                            <p className="mt-1">
+                              <a
+                                href={`/engagement/${p.engagement_id}`}
+                                className="font-semibold text-teal-800 underline"
+                              >
+                                Full profile
+                              </a>
+                            </p>
                           </div>
                         </Popup>
                       </CircleMarker>
@@ -683,6 +724,44 @@ export function HealthMapPage() {
                   );
                 })}
               </Pane>
+
+              {showCoverage && coverage.length > 0 && (
+                <Pane name="coverage" style={{ zIndex: 520 }}>
+                  {coverage.map((o) => (
+                    <CircleMarker
+                      key={o.id}
+                      center={[o.latitude, o.longitude]}
+                      radius={o.kind === "weak_dense" ? 7 : 5}
+                      pathOptions={{
+                        color: o.kind === "weak_dense" ? "#9a3412" : "#6b21a8",
+                        weight: 1.5,
+                        fillColor: o.kind === "weak_dense" ? "#f97316" : "#c084fc",
+                        fillOpacity: 0.65,
+                      }}
+                    >
+                      <Tooltip direction="top" offset={[0, -4]}>
+                        <span className="font-semibold">{o.label}</span>
+                      </Tooltip>
+                      <Popup>
+                        <div className="min-w-[11rem] text-sm">
+                          <p className="font-bold">{o.label}</p>
+                          <p className="text-xs text-slate-600">{o.note}</p>
+                          {o.engagement_id != null && (
+                            <p className="mt-1">
+                              <a
+                                href={`/engagement/${o.engagement_id}`}
+                                className="font-semibold text-teal-800 underline"
+                              >
+                                Profile
+                              </a>
+                            </p>
+                          )}
+                        </div>
+                      </Popup>
+                    </CircleMarker>
+                  ))}
+                </Pane>
+              )}
             </MapContainer>
           )}
           {!loading && !visible.length && (

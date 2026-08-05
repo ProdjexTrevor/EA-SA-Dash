@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
+  ArrowsUpDownIcon,
   Bars3Icon,
+  BookOpenIcon,
+  BriefcaseIcon,
   ChartBarIcon,
   ChartBarSquareIcon,
+  DocumentArrowDownIcon,
   GlobeAltIcon,
   HeartIcon,
   MagnifyingGlassIcon,
   MapIcon,
   ScaleIcon,
+  UserGroupIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { Badge } from "@tremor/react";
@@ -22,6 +27,14 @@ const reportLinks = [
   { to: "/trends", label: "Trends", end: false, icon: MagnifyingGlassIcon },
   { to: "/health-check", label: "Health Check", end: false, icon: HeartIcon },
   { to: "/health-map", label: "Health Map", end: false, icon: GlobeAltIcon },
+];
+
+const briefingLinks = [
+  { to: "/portfolio", label: "Portfolio", end: false, icon: BriefcaseIcon },
+  { to: "/movers", label: "Movers", end: false, icon: ArrowsUpDownIcon },
+  { to: "/profiles", label: "Profiles", end: false, icon: UserGroupIcon },
+  { to: "/stories", label: "Stories", end: false, icon: BookOpenIcon },
+  { to: "/share", label: "Share", end: false, icon: DocumentArrowDownIcon },
 ];
 
 function BrandMark({ compact }: { compact?: boolean }) {
@@ -105,6 +118,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <NavSection
           title="Reports"
           links={reportLinks}
+          onNavigate={() => setMobileOpen(false)}
+        />
+        <NavSection
+          title="Briefing"
+          links={briefingLinks}
           onNavigate={() => setMobileOpen(false)}
         />
       </nav>

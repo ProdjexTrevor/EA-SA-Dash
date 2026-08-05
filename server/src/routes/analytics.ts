@@ -14,7 +14,19 @@ import {
 } from "../engagementHealthService.js";
 import { getDmmHealthAssessments } from "../dmmHealthService.js";
 import { getHealthMap } from "../healthMapService.js";
-import { getAdminBoundaries, getPlaceLabels } from "../mapLayersService.js";
+import {
+  getAdminBoundaries,
+  getPlaceLabels,
+} from "../mapLayersService.js";
+import {
+  getCoverageGaps,
+  getEngagementProfile,
+  getMovers,
+  getPortfolio,
+  getShareBundle,
+  getStories,
+  listEngagementProfiles,
+} from "../portfolioService.js";
 import { getLatestQuarter, listQuarters } from "../healthService.js";
 import { quarterEndParam } from "../quarterDates.js";
 import {
@@ -263,6 +275,83 @@ analyticsRouter.get("/health-map/places", async (req, res, next) => {
       ? z.coerce.number().int().min(1).max(5000).parse(req.query.limit)
       : 1500;
     res.json(await getPlaceLabels({ min_population, limit }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Executive portfolio brief (funnel, regions, movers preview, freshness). */
+analyticsRouter.get("/portfolio", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    res.json(await getPortfolio(date));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** QoQ health score movers. */
+analyticsRouter.get("/movers", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const limit = z.coerce.number().int().min(1).max(50).default(15).parse(req.query.limit ?? 15);
+    res.json(await getMovers(date, limit));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** List engagements for profile picker. */
+analyticsRouter.get("/profiles", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const search = req.query.search ? z.string().parse(req.query.search) : undefined;
+    res.json(await listEngagementProfiles(date, search));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Single engagement profile (assessment, history, story, path-to-next). */
+analyticsRouter.get("/engagement-profile", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const engagement_id = req.query.engagement_id
+      ? z.coerce.number().int().parse(req.query.engagement_id)
+      : undefined;
+    const name = req.query.name ? z.string().parse(req.query.name) : undefined;
+    res.json(await getEngagementProfile({ date, engagement_id, name }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Coverage / opportunity markers for map demos. */
+analyticsRouter.get("/coverage-gaps", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const limit = z.coerce.number().int().min(1).max(100).default(40).parse(req.query.limit ?? 40);
+    res.json(await getCoverageGaps(date, limit));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Seeded demo narratives + generation trees. */
+analyticsRouter.get("/stories", async (_req, res, next) => {
+  try {
+    res.json(await getStories());
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Shareable executive text + structured portfolio for print/PDF. */
+analyticsRouter.get("/share-bundle", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const region = req.query.region ? z.string().parse(req.query.region) : undefined;
+    res.json(await getShareBundle(date, region));
   } catch (e) {
     next(e);
   }

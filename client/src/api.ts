@@ -416,6 +416,180 @@ export type DmmHealthResponse = {
   data_limitations: string[];
 };
 
+export type MoverRow = {
+  engagement_id: number | null;
+  engagement_name: string;
+  region: string;
+  country: string;
+  health_score: number;
+  prior_score: number | null;
+  delta_score: number | null;
+  classification: DmmClassification;
+  prior_classification: string | null;
+  classification_changed: boolean;
+  direction: "up" | "down" | "flat" | "new";
+  summary: string;
+};
+
+export type MoversResponse = {
+  quarter_end: string;
+  prior_quarter: string | null;
+  gains: MoverRow[];
+  risks: MoverRow[];
+  flat_count: number;
+  new_count: number;
+  compared: number;
+  total: number;
+};
+
+export type PortfolioResponse = {
+  quarter_end: string;
+  prior_quarter: string | null;
+  headline: {
+    engagements: number;
+    avg_health_score: number;
+    baptism_needs_attention: number;
+    leadership_needs_attention: number;
+    movement_verified_count: number;
+  };
+  funnel: { classification: string; count: number }[];
+  regions: {
+    region: string;
+    engagements: number;
+    avg_health_score: number;
+    unhealthy: number;
+    fruitful_plus: number;
+  }[];
+  top_gains: MoverRow[];
+  top_risks: MoverRow[];
+  freshness: {
+    expected: number;
+    reporting: number;
+    not_reporting: number;
+    reporting_rate: number | null;
+    late_examples: string[];
+  };
+  stories_preview: {
+    id: string;
+    label: string;
+    region: string;
+    country: string;
+    highlight: string;
+  }[];
+  data_limitations: string[];
+};
+
+export type ProfilesListResponse = {
+  quarter_end: string;
+  rows: {
+    engagement_id: number | null;
+    engagement_name: string;
+    region?: string;
+    country?: string;
+    classification: DmmClassification;
+    health_score: number;
+    summary: string;
+  }[];
+  total: number;
+};
+
+export type GenNode = {
+  name: string;
+  role: string;
+  generation: number;
+  children?: GenNode[];
+};
+
+export type EngagementProfileResponse = {
+  quarter_end: string;
+  assessment: DmmAssessment | null;
+  history: Array<{
+    quarter_end: string;
+    dbs: number | null;
+    total_church: number | null;
+    new_disciples: number | null;
+    new_baptisms: number | null;
+    gen: number | null;
+    leaders_in_training: number | null;
+    active_trainers: number | null;
+  }>;
+  geo: {
+    latitude: number;
+    longitude: number;
+    locality: string | null;
+    pop_density_per_km2: number | null;
+  } | null;
+  narrative: {
+    id: string;
+    engagement_label: string;
+    country: string;
+    region: string;
+    highlight: string;
+    challenge: string;
+    prayer: string;
+    generation_tree: GenNode;
+    is_demo_seed: true;
+    demo_lineage: boolean;
+  } | null;
+  path_to_next: {
+    current: DmmClassification;
+    next: DmmClassification | null;
+    blockers: string[];
+    actions: string[];
+  } | null;
+  demo_lineage: {
+    enabled: boolean;
+    tree: GenNode | null;
+    note: string;
+  };
+};
+
+export type CoverageOpportunity = {
+  kind: "weak_dense" | "uncovered_district";
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  region?: string;
+  health_score?: number;
+  pop_density_per_km2?: number;
+  nearest_engagement_km?: number;
+  engagement_id?: number;
+  note: string;
+};
+
+export type CoverageGapsResponse = {
+  quarter_end: string;
+  opportunities: CoverageOpportunity[];
+  meta: { note: string; weak_dense?: number; uncovered?: number };
+};
+
+export type StoriesResponse = {
+  stories: Array<{
+    id: string;
+    engagement_label: string;
+    country: string;
+    region: string;
+    highlight: string;
+    challenge: string;
+    prayer: string;
+    generation_tree: GenNode;
+    demo_lineage: boolean;
+    is_demo_seed: true;
+  }>;
+  meta: { source: string; count: number };
+};
+
+export type ShareBundleResponse = {
+  quarter_end: string;
+  region: string | null;
+  generated_at: string;
+  portfolio: PortfolioResponse | null;
+  text: string;
+  share_path: string;
+};
+
 export const api = {
   analyticsQuarters: () =>
     get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/analytics/quarters"),
@@ -539,6 +713,38 @@ export const api = {
       }>;
       meta: { count: number; source: string };
     }>(`/api/analytics/health-map/places${qs ? `?${qs}` : ""}`);
+  },
+
+  analyticsPortfolio: (date: string) =>
+    get<PortfolioResponse>(`/api/analytics/portfolio?date=${encodeURIComponent(date)}`),
+  analyticsMovers: (date: string, limit = 15) =>
+    get<MoversResponse>(
+      `/api/analytics/movers?date=${encodeURIComponent(date)}&limit=${limit}`
+    ),
+  analyticsProfiles: (params: { date: string; search?: string }) => {
+    const q = new URLSearchParams({ date: params.date });
+    if (params.search) q.set("search", params.search);
+    return get<ProfilesListResponse>(`/api/analytics/profiles?${q}`);
+  },
+  analyticsEngagementProfile: (params: {
+    date: string;
+    engagement_id?: number;
+    name?: string;
+  }) => {
+    const q = new URLSearchParams({ date: params.date });
+    if (params.engagement_id != null) q.set("engagement_id", String(params.engagement_id));
+    if (params.name) q.set("name", params.name);
+    return get<EngagementProfileResponse>(`/api/analytics/engagement-profile?${q}`);
+  },
+  analyticsCoverageGaps: (date: string, limit = 40) =>
+    get<CoverageGapsResponse>(
+      `/api/analytics/coverage-gaps?date=${encodeURIComponent(date)}&limit=${limit}`
+    ),
+  analyticsStories: () => get<StoriesResponse>("/api/analytics/stories"),
+  analyticsShareBundle: (date: string, region?: string) => {
+    const q = new URLSearchParams({ date });
+    if (region) q.set("region", region);
+    return get<ShareBundleResponse>(`/api/analytics/share-bundle?${q}`);
   },
 
   quarters: () => get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/data-health/quarters"),
