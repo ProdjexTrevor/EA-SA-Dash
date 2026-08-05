@@ -12,6 +12,7 @@ import {
   getEngagementHealthFilterOptions,
   getEngagementHealthScoreboard,
 } from "../engagementHealthService.js";
+import { getDmmHealthAssessments } from "../dmmHealthService.js";
 import { getLatestQuarter, listQuarters } from "../healthService.js";
 import { quarterEndParam } from "../quarterDates.js";
 import {
@@ -183,6 +184,35 @@ analyticsRouter.get("/engagement-health", async (req, res, next) => {
       level_tag: req.query.level_tag ? z.string().parse(req.query.level_tag) : undefined,
     };
     const result = await getEngagementHealthScoreboard(date, filters);
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** DMM Engagement Health Check (classification + normalized indicator score). */
+analyticsRouter.get("/dmm-health", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const filters = {
+      region: req.query.region ? z.string().parse(req.query.region) : undefined,
+      country: req.query.country ? z.string().parse(req.query.country) : undefined,
+      classification: req.query.classification
+        ? z
+            .enum([
+              "Sustained Movement",
+              "Movement",
+              "Multiplying",
+              "Fruitful",
+              "Active",
+              "Unhealthy",
+              "Insufficient Data",
+            ])
+            .parse(req.query.classification)
+        : undefined,
+      search: req.query.search ? z.string().parse(req.query.search) : undefined,
+    };
+    const result = await getDmmHealthAssessments(date, filters);
     res.json(result);
   } catch (e) {
     next(e);

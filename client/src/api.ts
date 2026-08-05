@@ -311,6 +311,73 @@ export type EngagementHealthSummary = {
   by_band: Record<HealthBandLabel, number>;
 };
 
+export type DmmClassification =
+  | "Sustained Movement"
+  | "Movement"
+  | "Multiplying"
+  | "Fruitful"
+  | "Active"
+  | "Unhealthy"
+  | "Insufficient Data";
+
+export type MetricStatus = "green" | "yellow" | "red" | "not_available";
+
+export type DmmRateIndicator = {
+  value: number | null;
+  status: MetricStatus;
+  numerator: number | null;
+  denominator: number | null;
+  formula: string;
+  thresholds: string;
+};
+
+export type DmmAssessment = {
+  engagement_id: number | null;
+  engagement_name: string;
+  reporting_period: string;
+  region?: string;
+  country?: string;
+  people_group?: string;
+  classification: DmmClassification;
+  health_score: number;
+  movement_verified: boolean;
+  summary: string;
+  metrics: {
+    group_to_church_rate: DmmRateIndicator;
+    baptism_rate: DmmRateIndicator;
+    leadership_pipeline_rate: DmmRateIndicator;
+    trainer_rate: DmmRateIndicator;
+    church_loss_rate: DmmRateIndicator;
+    church_growth_rate: DmmRateIndicator;
+    disciple_growth_rate: DmmRateIndicator;
+    generation_depth: DmmRateIndicator;
+    mbb_church_formation_rate: DmmRateIndicator & {
+      trend: "improving" | "flat" | "declining" | "not_available";
+    };
+  };
+  baptism_simple_band: "healthy" | "trending" | "needs_attention" | "not_available";
+  leadership_simple_band: "healthy" | "trending" | "needs_attention" | "not_available";
+  groups_to_church_target_met: boolean | null;
+  strengths: string[];
+  warnings: string[];
+  recommended_actions: string[];
+};
+
+export type DmmHealthResponse = {
+  quarter_end: string;
+  prior_quarter: string | null;
+  rows: DmmAssessment[];
+  summary: {
+    total: number;
+    avg_health_score: number;
+    by_classification: Record<string, number>;
+    baptism_needs_attention: number;
+    leadership_needs_attention: number;
+    movement_verified_count: number;
+  };
+  data_limitations: string[];
+};
+
 export const api = {
   analyticsQuarters: () =>
     get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/analytics/quarters"),
@@ -373,6 +440,20 @@ export const api = {
       rows: EngagementHealthRow[];
       summary: EngagementHealthSummary;
     }>(`/api/analytics/engagement-health?${q}`);
+  },
+  analyticsDmmHealth: (params: {
+    date: string;
+    region?: string;
+    country?: string;
+    classification?: string;
+    search?: string;
+  }) => {
+    const q = new URLSearchParams({ date: params.date });
+    if (params.region) q.set("region", params.region);
+    if (params.country) q.set("country", params.country);
+    if (params.classification) q.set("classification", params.classification);
+    if (params.search) q.set("search", params.search);
+    return get<DmmHealthResponse>(`/api/analytics/dmm-health?${q}`);
   },
 
   quarters: () => get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/data-health/quarters"),

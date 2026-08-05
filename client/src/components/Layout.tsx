@@ -4,6 +4,7 @@ import {
   Bars3Icon,
   ChartBarIcon,
   ChartBarSquareIcon,
+  HeartIcon,
   MagnifyingGlassIcon,
   MapIcon,
   ScaleIcon,
@@ -18,6 +19,7 @@ const reportLinks = [
   { to: "/compare", label: "Compare", end: false, icon: ScaleIcon },
   { to: "/scorecard", label: "Scorecard", end: false, icon: ChartBarIcon },
   { to: "/trends", label: "Trends", end: false, icon: MagnifyingGlassIcon },
+  { to: "/health-check", label: "Health Check", end: false, icon: HeartIcon },
 ];
 
 function BrandMark({ compact }: { compact?: boolean }) {
