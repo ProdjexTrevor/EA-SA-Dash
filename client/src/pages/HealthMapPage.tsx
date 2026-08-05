@@ -31,24 +31,24 @@ const BASEMAPS: Record<
   { label: string; url: string; attribution: string; maxZoom?: number }
 > = {
   voyager_plain: {
-    label: "Voyager (no labels)",
+    label: "Plain",
     url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png",
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
   },
   positron_plain: {
-    label: "Light gray (no labels)",
+    label: "Light",
     url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
   },
   osm: {
-    label: "OpenStreetMap (labels included)",
+    label: "Street",
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   },
   esri_imagery: {
-    label: "Satellite imagery",
+    label: "Satellite",
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution: "Tiles &copy; Esri",
     maxZoom: 19,
@@ -71,14 +71,13 @@ function labeledPlaceIcon(name: string, pop: number | null) {
   return L.divIcon({
     className: "bg-transparent border-0",
     html: `<div style="
-      background:${big ? "#0f766e" : "#1e293b"};
+      background:${big ? "rgba(15,118,110,.88)" : "rgba(30,41,59,.82)"};
       color:#fff;
-      font:600 ${big ? 11 : 10}px/1.2 'Plus Jakarta Sans',system-ui,sans-serif;
-      padding:2px 6px;
-      border-radius:4px;
+      font:500 ${big ? 10 : 9}px/1.15 'Plus Jakarta Sans',system-ui,sans-serif;
+      padding:1px 4px;
+      border-radius:3px;
       white-space:nowrap;
-      box-shadow:0 1px 3px rgba(0,0,0,.35);
-      border:1px solid rgba(255,255,255,.35);
+      box-shadow:0 1px 2px rgba(0,0,0,.25);
     ">${esc}</div>`,
     iconSize: [1, 1],
     iconAnchor: [0, 0],
@@ -145,85 +144,86 @@ function DetailPanel({
   ] as const;
 
   return (
-    <div className="dash-panel-solid absolute bottom-4 right-4 z-[1000] max-h-[70vh] w-[min(24rem,calc(100%-2rem))] overflow-y-auto p-4 shadow-dash-lg">
+    <div className="dash-panel-solid absolute bottom-4 right-4 z-[1000] max-h-[70vh] w-[min(22rem,calc(100%-2rem))] overflow-y-auto p-3 shadow-dash-lg">
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-base font-bold text-slate-900">{point.engagement_name}</h3>
-          <p className="text-sm font-medium text-slate-700">
-            {point.country} · {point.region}
-            {point.is_demo ? " · demo geo" : ""}
+          <h3 className="text-sm font-semibold text-slate-900">{point.engagement_name}</h3>
+          <p className="text-xs text-slate-600">
+            {point.country}
+            {point.is_demo ? " · demo" : ""}
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-lg border border-slate-300 px-2 py-1 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+          className="rounded-md border border-slate-200 px-2 py-0.5 text-xs text-slate-700"
         >
           Close
         </button>
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-2">
-        <span className="rounded-md bg-slate-800 px-2 py-0.5 text-xs font-bold text-white">
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[11px] font-medium text-white">
           {point.classification}
         </span>
-        <span className="rounded-md border border-slate-300 px-2 py-0.5 text-xs font-bold text-slate-900">
-          Score {point.health_score}
+        <span className="rounded border border-slate-200 px-1.5 py-0.5 text-[11px] font-medium text-slate-800">
+          {point.health_score}
         </span>
-        <span className="rounded-md border border-slate-300 px-2 py-0.5 text-xs font-bold text-slate-900">
-          Spread {point.spread_radius_mi} mi
+        <span className="rounded border border-slate-200 px-1.5 py-0.5 text-[11px] font-medium text-slate-800">
+          {point.spread_radius_mi} mi
         </span>
       </div>
 
-      <p className="mb-3 text-sm leading-relaxed text-slate-800">{point.summary}</p>
+      <p className="mb-2 text-xs leading-snug text-slate-700">{point.summary}</p>
 
-      <dl className="mb-3 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-lg bg-slate-50 p-2">
-          <dt className="font-medium text-slate-700">Pop. density</dt>
-          <dd className="font-bold tabular-nums text-slate-900">
-            {point.pop_density_per_km2.toLocaleString()} /km²
+      <dl className="mb-2 grid grid-cols-2 gap-1.5 text-xs">
+        <div className="rounded-md bg-slate-50 p-1.5">
+          <dt className="text-slate-500">Density</dt>
+          <dd className="font-semibold tabular-nums text-slate-900">
+            {Math.round(point.pop_density_per_km2)}/km²
           </dd>
         </div>
-        <div className="rounded-lg bg-slate-50 p-2">
-          <dt className="font-medium text-slate-700">People in radius (est.)</dt>
-          <dd className="font-bold tabular-nums text-slate-900">
+        <div className="rounded-md bg-slate-50 p-1.5">
+          <dt className="text-slate-500">People</dt>
+          <dd className="font-semibold tabular-nums text-slate-900">
             {point.estimated_people_in_radius.toLocaleString()}
           </dd>
         </div>
-        <div className="rounded-lg bg-slate-50 p-2">
-          <dt className="font-medium text-slate-700">Healthy ideal radius</dt>
-          <dd className="font-bold tabular-nums text-slate-900">
+        <div className="rounded-md bg-slate-50 p-1.5">
+          <dt className="text-slate-500">Ideal reach</dt>
+          <dd className="font-semibold tabular-nums text-slate-900">
             {point.healthy_ideal_radius_mi} mi
           </dd>
         </div>
-        <div className="rounded-lg bg-slate-50 p-2">
-          <dt className="font-medium text-slate-700">Coords</dt>
-          <dd className="text-xs font-bold tabular-nums text-slate-900">
-            {point.latitude.toFixed(3)}, {point.longitude.toFixed(3)}
+        <div className="rounded-md bg-slate-50 p-1.5">
+          <dt className="text-slate-500">Location</dt>
+          <dd className="font-semibold tabular-nums text-slate-900">
+            {point.latitude.toFixed(2)}, {point.longitude.toFixed(2)}
           </dd>
         </div>
       </dl>
 
-      <h4 className="mb-1 text-sm font-bold text-slate-900">DMM indicators</h4>
-      <ul className="mb-3 space-y-1 text-sm">
+      <h4 className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        Indicators
+      </h4>
+      <ul className="mb-2 space-y-0.5 text-xs">
         {metrics.map(([label, m]) => (
-          <li key={label} className="flex justify-between gap-2 border-b border-slate-100 py-1">
-            <span className="font-medium text-slate-700">{label}</span>
-            <span className="font-bold tabular-nums text-slate-900">
+          <li key={label} className="flex justify-between gap-2 border-b border-slate-100 py-0.5">
+            <span className="text-slate-600">{label}</span>
+            <span className="font-medium tabular-nums text-slate-900">
               {m.status}
               {m.value != null
                 ? label === "Generation"
-                  ? ` · G${m.value}`
-                  : ` · ${Math.round(m.value * 1000) / 10}%`
+                  ? ` G${m.value}`
+                  : ` ${Math.round(m.value * 1000) / 10}%`
                 : ""}
             </span>
           </li>
         ))}
       </ul>
 
-      <p className="text-xs font-medium text-slate-600">
-        Movement verified: {point.movement_verified ? "Yes" : "No"} · Geocode:{" "}
-        {point.geocode_source}
+      <p className="text-[11px] text-slate-500">
+        {point.movement_verified ? "Movement verified" : "Not a verified movement"}
       </p>
     </div>
   );
@@ -327,31 +327,27 @@ export function HealthMapPage() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-        <PageHeader
-          title="Health Map"
-          subtitle="DMM health scores on a world map. Turn on place-name overlays for African towns and villages; zoom in for denser labels."
-        />
+        <PageHeader title="Health Map" subtitle="Health scores, reach, and place context." />
         {quarters.length > 0 && (
           <QuarterSelect value={quarter} options={quarters} onChange={setQuarter} />
         )}
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Mapped engagements" value={summary?.points ?? "—"} />
-        <StatCard label="Avg health score" value={summary?.avg_health_score ?? "—"} tone="good" />
-        <StatCard label="Avg spread radius" value={summary ? `${summary.avg_spread_mi} mi` : "—"} />
+      <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+        <StatCard label="Engagements" value={summary?.points ?? "—"} />
+        <StatCard label="Avg score" value={summary?.avg_health_score ?? "—"} tone="good" />
+        <StatCard label="Avg spread" value={summary ? `${summary.avg_spread_mi} mi` : "—"} />
         <StatCard
-          label="People in radii (est.)"
+          label="People in reach"
           value={
             summary ? Math.round(summary.total_estimated_people_in_radii / 1000) + "k" : "—"
           }
-          hint="Sum of density × area (illustrative)"
         />
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-slate-700">
         <select
-          className="dash-input"
+          className="dash-input !py-1.5 !text-xs"
           value={regionFilter}
           onChange={(e) => setRegionFilter(e.target.value)}
         >
@@ -363,10 +359,10 @@ export function HealthMapPage() {
           ))}
         </select>
 
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          Basemap
+        <label className="inline-flex items-center gap-1.5">
+          Map
           <select
-            className="dash-input"
+            className="dash-input !py-1.5 !text-xs"
             value={basemap}
             onChange={(e) => setBasemap(e.target.value as BasemapId)}
           >
@@ -378,69 +374,27 @@ export function HealthMapPage() {
           </select>
         </label>
 
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          <input
-            type="checkbox"
-            checked={showProvinces}
-            onChange={(e) => setShowProvinces(e.target.checked)}
-            className="rounded border-slate-300 text-brand-600"
-          />
-          Provinces (ADM1)
-        </label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          <input
-            type="checkbox"
-            checked={showDistricts}
-            onChange={(e) => setShowDistricts(e.target.checked)}
-            className="rounded border-slate-300 text-brand-600"
-          />
-          Districts / counties (ADM2)
-        </label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          <input
-            type="checkbox"
-            checked={showCities}
-            onChange={(e) => setShowCities(e.target.checked)}
-            className="rounded border-slate-300 text-brand-600"
-          />
-          Major towns
-        </label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          <input
-            type="checkbox"
-            checked={showPlaceLabels}
-            onChange={(e) => setShowPlaceLabels(e.target.checked)}
-            className="rounded border-slate-300 text-brand-600"
-          />
-          OSM village labels
-        </label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          <input
-            type="checkbox"
-            checked={showBoundaries}
-            onChange={(e) => setShowBoundaries(e.target.checked)}
-            className="rounded border-slate-300 text-brand-600"
-          />
-          Raster boundaries
-        </label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          <input
-            type="checkbox"
-            checked={showRoads}
-            onChange={(e) => setShowRoads(e.target.checked)}
-            className="rounded border-slate-300 text-brand-600"
-          />
-          Roads
-        </label>
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          <input
-            type="checkbox"
-            checked={showRadii}
-            onChange={(e) => setShowRadii(e.target.checked)}
-            className="rounded border-slate-300 text-brand-600"
-          />
-          Spread radii
-        </label>
+        {(
+          [
+            [showProvinces, setShowProvinces, "Provinces"],
+            [showDistricts, setShowDistricts, "Districts"],
+            [showCities, setShowCities, "Towns"],
+            [showPlaceLabels, setShowPlaceLabels, "Labels"],
+            [showBoundaries, setShowBoundaries, "Borders"],
+            [showRoads, setShowRoads, "Roads"],
+            [showRadii, setShowRadii, "Reach"],
+          ] as const
+        ).map(([checked, set, label]) => (
+          <label key={label} className="inline-flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => set(e.target.checked)}
+              className="rounded border-slate-300 text-brand-600"
+            />
+            {label}
+          </label>
+        ))}
       </div>
 
       {error && <ErrorBlock message={error} />}
@@ -479,14 +433,12 @@ export function HealthMapPage() {
                     })}
                     onEachFeature={(feature, layer) => {
                       const n = feature.properties?.shape_name;
-                      const c = feature.properties?.country_name;
-                      layer.bindTooltip(`${n}${c ? ` · ${c}` : ""}`, { sticky: true });
+                      layer.bindTooltip(n || "", { sticky: true });
                     }}
                   />
                 </Pane>
               )}
 
-              {/* GeoJSON districts (ADM2) — loaded on first enable */}
               {showDistricts && adm2 && adm2.features.length > 0 && (
                 <Pane name="adm2" style={{ zIndex: 330 }}>
                   <GeoJSON
@@ -501,10 +453,7 @@ export function HealthMapPage() {
                     })}
                     onEachFeature={(feature, layer) => {
                       const n = feature.properties?.shape_name;
-                      const c = feature.properties?.country_name;
-                      layer.bindTooltip(`${n}${c ? ` · ${c}` : ""} (district)`, {
-                        sticky: true,
-                      });
+                      layer.bindTooltip(n || "", { sticky: true });
                     }}
                   />
                 </Pane>
@@ -645,57 +594,31 @@ export function HealthMapPage() {
       </div>
 
       {layerNote && (
-        <p className="mt-2 text-xs font-medium text-slate-600">
-          {layerNote}
-          {adm1 ? ` · ADM1 features: ${adm1.features.length}` : " · ADM1 not seeded"}
-          {adm2 ? ` · ADM2 features: ${adm2.features.length}` : ""}
-          {places.length ? ` · towns: ${places.length}` : ""}
+        <p className="mt-2 text-[11px] text-slate-500">
+          {[
+            adm1 ? `${adm1.features.length} provinces` : null,
+            adm2 ? `${adm2.features.length} districts` : null,
+            places.length ? `${places.length} towns` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       )}
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
-        <p className="font-bold text-slate-900">What was added to Health Map</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5">
-          <li>
-            <strong>Provinces (ADM1)</strong> and <strong>districts (ADM2)</strong> polygons from{" "}
-            <a className="text-emerald-800 underline" href="https://www.geoboundaries.org/" target="_blank" rel="noreferrer">
-              geoBoundaries
-            </a>{" "}
-            stored in <code className="rounded bg-slate-100 px-1">Dash_AdminBoundaries</code>
-          </li>
-          <li>
-            <strong>Major towns</strong> from Natural Earth into{" "}
-            <code className="rounded bg-slate-100 px-1">Dash_PlaceLabels</code>
-          </li>
-          <li>OSM/CARTO village labels, Esri roads, Esri raster boundaries, basemap switcher</li>
-          <li>All DB writes are Dash_* only</li>
-        </ul>
-        <p className="mt-3 text-xs text-slate-600">
-          Seed commands: <code className="rounded bg-slate-100 px-1">npm run seed:geo</code> ·{" "}
-          <code className="rounded bg-slate-100 px-1">npm run seed:map-layers</code>
-        </p>
-      </div>
-
       {legend && (
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
-          <p className="font-bold text-slate-900">Health layer</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>{legend.heat}</li>
-            <li>{legend.spread}</li>
-            <li>{legend.data_note}</li>
-          </ul>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <span className="text-xs font-semibold text-slate-700">Score</span>
-            {[20, 40, 55, 75, 90].map((s) => (
-              <span key={s} className="inline-flex items-center gap-1 text-xs font-medium">
-                <span
-                  className="inline-block h-3 w-3 rounded-full border border-slate-800/30"
-                  style={{ background: scoreColor(s) }}
-                />
-                {s}
-              </span>
-            ))}
-          </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-slate-600">
+          <span className="font-medium text-slate-700">Score</span>
+          {[20, 40, 55, 75, 90].map((s) => (
+            <span key={s} className="inline-flex items-center gap-1">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ background: scoreColor(s) }}
+              />
+              {s}
+            </span>
+          ))}
+          <span className="text-slate-400">|</span>
+          <span>Dot = engagement · ring = reach miles</span>
         </div>
       )}
     </div>
