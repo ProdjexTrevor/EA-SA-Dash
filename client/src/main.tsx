@@ -15,6 +15,9 @@ import { ProfilesPage } from "./pages/ProfilesPage";
 import { EngagementProfilePage } from "./pages/EngagementProfilePage";
 import { StoriesPage } from "./pages/StoriesPage";
 import { SharePage } from "./pages/SharePage";
+import { WinWallPage } from "./pages/WinWallPage";
+import { RiskRadarPage } from "./pages/RiskRadarPage";
+import { WarRoomPage } from "./pages/WarRoomPage";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -30,6 +33,9 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/health-check" element={<HealthCheckPage />} />
           <Route path="/health-map" element={<HealthMapPage />} />
           <Route path="/portfolio" element={<PortfolioPage />} />
+          <Route path="/wins" element={<WinWallPage />} />
+          <Route path="/risk-radar" element={<RiskRadarPage />} />
+          <Route path="/war-room" element={<WarRoomPage />} />
           <Route path="/movers" element={<MoversPage />} />
           <Route path="/profiles" element={<ProfilesPage />} />
           <Route path="/engagement/:engagementId" element={<EngagementProfilePage />} />

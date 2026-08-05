@@ -442,6 +442,7 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+/** Coverage / opportunity markers with planting-priority ranking. */
 export type CoverageOpportunity = {
   kind: "weak_dense" | "uncovered_district";
   id: string;
@@ -455,6 +456,8 @@ export type CoverageOpportunity = {
   nearest_engagement_km?: number;
   engagement_id?: number;
   note: string;
+  /** Higher = stronger demo “go plant / coach here” signal. */
+  planting_priority: number;
 };
 
 export async function getCoverageGaps(quarterEnd: string, limit = 40) {
@@ -473,6 +476,9 @@ export async function getCoverageGaps(quarterEnd: string, limit = 40) {
   // Dense population + weak health at engagement points
   for (const p of map.points) {
     if (p.pop_density_per_km2 >= 120 && p.health_score < 48) {
+      const planting_priority = Math.round(
+        (48 - p.health_score) * 2 + Math.min(p.pop_density_per_km2, 800) / 20
+      );
       opportunities.push({
         kind: "weak_dense",
         id: `weak-${p.engagement_id}`,
@@ -484,7 +490,8 @@ export async function getCoverageGaps(quarterEnd: string, limit = 40) {
         health_score: p.health_score,
         pop_density_per_km2: p.pop_density_per_km2,
         engagement_id: p.engagement_id,
-        note: `High density (${Math.round(p.pop_density_per_km2)}/km²) with health ${p.health_score}`,
+        planting_priority,
+        note: `High density (${Math.round(p.pop_density_per_km2)}/km²) with health ${p.health_score} · priority ${planting_priority}`,
       });
     }
   }
@@ -505,6 +512,7 @@ export async function getCoverageGaps(quarterEnd: string, limit = 40) {
       if (d < nearest) nearest = d;
     }
     if (nearest > 90 && nearest < 5000) {
+      const planting_priority = Math.round(Math.min(nearest, 400) / 4);
       opportunities.push({
         kind: "uncovered_district",
         id: `dist-${f.properties.id}`,
@@ -513,17 +521,14 @@ export async function getCoverageGaps(quarterEnd: string, limit = 40) {
         longitude: lon,
         country: f.properties.country_name,
         nearest_engagement_km: Math.round(nearest),
-        note: `No engagement within ~${Math.round(nearest)} km of district centroid`,
+        planting_priority,
+        note: `No engagement within ~${Math.round(nearest)} km · plant priority ${planting_priority}`,
       });
     }
   }
 
-  // Prioritize: weak_dense first, then farthest uncovered
-  opportunities.sort((a, b) => {
-    if (a.kind !== b.kind) return a.kind === "weak_dense" ? -1 : 1;
-    if (a.kind === "weak_dense") return (a.health_score ?? 99) - (b.health_score ?? 99);
-    return (b.nearest_engagement_km ?? 0) - (a.nearest_engagement_km ?? 0);
-  });
+  // Higher planting priority first
+  opportunities.sort((a, b) => b.planting_priority - a.planting_priority);
 
   return {
     quarter_end: qEnd,
@@ -614,5 +619,196 @@ export async function listEngagementProfiles(quarterEnd: string, search?: string
       summary: r.summary,
     })),
     total: dmm.rows.length,
+  };
+}
+
+export type RiskRadarRow = {
+  engagement_id: number | null;
+  engagement_name: string;
+  region: string;
+  country: string;
+  health_score: number;
+  urgency: number;
+  flags: string[];
+  delta_score: number | null;
+  classification: string;
+  baptism_band: string;
+  summary: string;
+};
+
+/** Composite urgency for regional directors (demo ops radar). */
+export async function getRiskRadar(quarterEnd: string, limit = 25) {
+  const qEnd = normalizeQuarterEnd(quarterEnd);
+  if (!qEnd) {
+    return { quarter_end: quarterEnd, prior_quarter: null, rows: [] as RiskRadarRow[] };
+  }
+  const priorQ = priorQuarterEnd(qEnd);
+  const [curr, prev, reporting] = await Promise.all([
+    getDmmHealthAssessments(qEnd, {}),
+    getDmmHealthAssessments(priorQ, {}),
+    getNotReportingEngagements(qEnd).catch(() => ({ rows: [] as { engagement_id: number; engagement_name: string }[] })),
+  ]);
+  const priorBy = new Map(prev.rows.map((p) => [engKey(p), p]));
+  const lateIds = new Set(
+    (reporting.rows ?? []).map((r) => r.engagement_id).filter((id): id is number => id != null)
+  );
+  const lateNames = new Set(
+    (reporting.rows ?? []).map((r) => (r.engagement_name || "").toLowerCase())
+  );
+
+  const rows: RiskRadarRow[] = [];
+  for (const c of curr.rows) {
+    const p = priorBy.get(engKey(c));
+    const flags: string[] = [];
+    let urgency = 0;
+    const delta = p ? Math.round((c.health_score - p.health_score) * 10) / 10 : null;
+
+    if (delta != null && delta <= -5) {
+      urgency += Math.min(40, Math.abs(delta) * 2.5);
+      flags.push(`Score ${delta}`);
+    }
+    if (c.baptism_simple_band === "needs_attention") {
+      urgency += 18;
+      flags.push("Baptism watch");
+    }
+    if (c.leadership_simple_band === "needs_attention") {
+      urgency += 12;
+      flags.push("Leadership watch");
+    }
+    if (c.classification === "Unhealthy" || c.classification === "Insufficient Data") {
+      urgency += 14;
+      flags.push(c.classification);
+    }
+    if (p && p.classification !== c.classification) {
+      const worse =
+        CLASS_ORDER.indexOf(c.classification) > CLASS_ORDER.indexOf(p.classification);
+      if (worse) {
+        urgency += 16;
+        flags.push(`Class ↓ from ${p.classification}`);
+      }
+    }
+    if (c.health_score < 40) {
+      urgency += 10;
+      flags.push("Low score");
+    }
+    const late =
+      (c.engagement_id != null && lateIds.has(c.engagement_id)) ||
+      lateNames.has(c.engagement_name.toLowerCase());
+    if (late) {
+      urgency += 22;
+      flags.push("Late report");
+    }
+
+    if (urgency < 12 || flags.length === 0) continue;
+
+    rows.push({
+      engagement_id: c.engagement_id,
+      engagement_name: c.engagement_name,
+      region: c.region ?? "",
+      country: c.country ?? "",
+      health_score: c.health_score,
+      urgency: Math.round(urgency),
+      flags,
+      delta_score: delta,
+      classification: c.classification,
+      baptism_band: c.baptism_simple_band,
+      summary: c.summary,
+    });
+  }
+
+  rows.sort((a, b) => b.urgency - a.urgency);
+  return {
+    quarter_end: qEnd,
+    prior_quarter: priorQ,
+    rows: rows.slice(0, limit),
+    meta: {
+      note: "Urgency combines score drops, baptism/leadership watch, class decline, and late reporting.",
+      total_flagged: rows.length,
+    },
+  };
+}
+
+export type WinWallRow = {
+  engagement_id: number | null;
+  engagement_name: string;
+  region: string;
+  country: string;
+  health_score: number;
+  prior_score: number | null;
+  delta_score: number;
+  classification: string;
+  prior_classification: string | null;
+  headline: string;
+  story_snippet: string | null;
+};
+
+/** Biggest positive movers as celebratory cards. */
+export async function getWinWall(quarterEnd: string, limit = 8) {
+  const movers = await getMovers(quarterEnd, limit + 5);
+  const wins = movers.gains
+    .filter((g) => (g.delta_score ?? 0) > 0)
+    .slice(0, limit)
+    .map((g): WinWallRow => {
+      const narrative = matchNarrative({
+        engagement_id: g.engagement_id,
+        engagement_name: g.engagement_name,
+        region: g.region,
+        country: g.country,
+      });
+      return {
+        engagement_id: g.engagement_id,
+        engagement_name: g.engagement_name,
+        region: g.region,
+        country: g.country,
+        health_score: g.health_score,
+        prior_score: g.prior_score,
+        delta_score: g.delta_score ?? 0,
+        classification: g.classification,
+        prior_classification: g.prior_classification,
+        headline:
+          g.classification_changed && g.prior_classification
+            ? `Climbed from ${g.prior_classification} to ${g.classification}`
+            : `Health +${g.delta_score} this quarter`,
+        story_snippet: narrative ? narrative.highlight.slice(0, 160) : null,
+      };
+    });
+
+  return {
+    quarter_end: movers.quarter_end,
+    prior_quarter: movers.prior_quarter,
+    wins,
+    meta: { count: wins.length },
+  };
+}
+
+/** Short spoken brief lines for Share page (browser TTS). */
+export async function getSpokenBrief(quarterEnd: string) {
+  const portfolio = await getPortfolio(quarterEnd);
+  const q = portfolio.quarter_end;
+  const topGain = portfolio.top_gains[0];
+  const topRisk = portfolio.top_risks[0];
+  const lines = [
+    `EA S A Dash executive brief for quarter ending ${q}.`,
+    `${portfolio.headline.engagements} engagements assessed. Average health score ${portfolio.headline.avg_health_score}.`,
+    `${portfolio.headline.baptism_needs_attention} on baptism watch. ${portfolio.headline.leadership_needs_attention} on leadership watch.`,
+    portfolio.freshness.not_reporting
+      ? `${portfolio.freshness.not_reporting} sites late or not reporting.`
+      : `Reporting looks complete for this quarter.`,
+  ];
+  if (topGain) {
+    lines.push(
+      `Biggest gain: ${topGain.engagement_name}, up ${topGain.delta_score} points to ${topGain.health_score}.`
+    );
+  }
+  if (topRisk && (topRisk.delta_score ?? 0) < 0) {
+    lines.push(
+      `Biggest risk: ${topRisk.engagement_name}, down ${Math.abs(topRisk.delta_score ?? 0)} to ${topRisk.health_score}.`
+    );
+  }
+  lines.push(`Open the Share page for the full brief.`);
+  return {
+    quarter_end: q,
+    script: lines.join(" "),
+    lines,
   };
 }

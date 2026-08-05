@@ -7,12 +7,15 @@ import {
   BriefcaseIcon,
   ChartBarIcon,
   ChartBarSquareIcon,
+  CommandLineIcon,
   DocumentArrowDownIcon,
+  ExclamationTriangleIcon,
   GlobeAltIcon,
   HeartIcon,
   MagnifyingGlassIcon,
   MapIcon,
   ScaleIcon,
+  SparklesIcon,
   UserGroupIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -31,6 +34,9 @@ const reportLinks = [
 
 const briefingLinks = [
   { to: "/portfolio", label: "Portfolio", end: false, icon: BriefcaseIcon },
+  { to: "/wins", label: "Win wall", end: false, icon: SparklesIcon },
+  { to: "/risk-radar", label: "Risk radar", end: false, icon: ExclamationTriangleIcon },
+  { to: "/war-room", label: "War room", end: false, icon: CommandLineIcon },
   { to: "/movers", label: "Movers", end: false, icon: ArrowsUpDownIcon },
   { to: "/profiles", label: "Profiles", end: false, icon: UserGroupIcon },
   { to: "/stories", label: "Stories", end: false, icon: BookOpenIcon },

@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Circle,
@@ -380,6 +380,28 @@ export function HealthMapPage() {
   const [layerNote, setLayerNote] = useState("");
   const [villageStatus, setVillageStatus] = useState("");
   const [villageCount, setVillageCount] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [playIndex, setPlayIndex] = useState(0);
+  const frameCacheRef = useRef<
+    Record<
+      string,
+      {
+        points: HealthMapPoint[];
+        summary: {
+          points: number;
+          avg_health_score: number;
+          avg_spread_mi: number;
+          total_estimated_people_in_radii: number;
+        };
+        legend: { heat: string; spread: string; data_note: string };
+      }
+    >
+  >({});
+
+  const playList = useMemo(() => {
+    // oldest → newest for filmstrip (last 6 quarters with data)
+    return [...quarters].slice(0, 6).reverse().filter((q) => q.date);
+  }, [quarters]);
 
   const onVillageStatus = useCallback((msg: string, count: number) => {
     setVillageStatus(msg);
@@ -435,19 +457,91 @@ export function HealthMapPage() {
   useEffect(() => {
     const date = normalizeQuarterDate(quarter);
     if (!date) return;
+    const cached = frameCacheRef.current[date];
+    if (cached) {
+      setPoints(cached.points);
+      setSummary(cached.summary);
+      setLegend(cached.legend);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     api
       .analyticsHealthMap(date)
       .then((res) => {
+        frameCacheRef.current[date] = {
+          points: res.points,
+          summary: res.summary,
+          legend: res.legend,
+        };
         setPoints(res.points);
         setLegend(res.legend);
         setSummary(res.summary);
-        setSelected(null);
+        if (!playing) setSelected(null);
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
-  }, [quarter]);
+  }, [quarter, playing]);
+
+  // Prefetch filmstrip frames when play starts
+  useEffect(() => {
+    if (!playing || playList.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const q of playList) {
+        if (cancelled) break;
+        const d = q.date;
+        if (frameCacheRef.current[d]) continue;
+        try {
+          const res = await api.analyticsHealthMap(d);
+          if (cancelled) break;
+          frameCacheRef.current[d] = {
+            points: res.points,
+            summary: res.summary,
+            legend: res.legend,
+          };
+        } catch {
+          /* skip frame */
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [playing, playList]);
+
+  // Advance filmstrip
+  useEffect(() => {
+    if (!playing || playList.length < 2) return;
+    const id = window.setInterval(() => {
+      setPlayIndex((i) => {
+        const next = i + 1;
+        if (next >= playList.length) {
+          setPlaying(false);
+          return playList.length - 1;
+        }
+        return next;
+      });
+    }, 1400);
+    return () => window.clearInterval(id);
+  }, [playing, playList]);
+
+  useEffect(() => {
+    if (!playing || !playList[playIndex]) return;
+    setQuarter(playList[playIndex].date);
+  }, [playing, playIndex, playList]);
+
+  function startPlay() {
+    if (playList.length < 2) return;
+    setPlayIndex(0);
+    setQuarter(playList[0].date);
+    setPlaying(true);
+  }
+
+  function stopPlay() {
+    setPlaying(false);
+  }
 
   const regions = useMemo(() => {
     const s = new Set(points.map((p) => p.region).filter(Boolean));
@@ -465,10 +559,50 @@ export function HealthMapPage() {
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <PageHeader title="Health Map" subtitle="Health scores, reach, and place context." />
-        {quarters.length > 0 && (
-          <QuarterSelect value={quarter} options={quarters} onChange={setQuarter} />
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {quarters.length > 0 && (
+            <QuarterSelect
+              value={quarter}
+              options={quarters}
+              onChange={(d) => {
+                stopPlay();
+                setQuarter(d);
+              }}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => (playing ? stopPlay() : startPlay())}
+            disabled={playList.length < 2}
+            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-40"
+          >
+            {playing
+              ? `Playing ${playIndex + 1}/${playList.length}`
+              : "Play last year"}
+          </button>
+          <Link
+            to="/war-room"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            War room
+          </Link>
+        </div>
       </div>
+
+      {playing && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+          <span className="font-semibold">Filmstrip</span>
+          <span className="tabular-nums">{formatQuarterLabel(quarter)}</span>
+          <div className="ml-auto flex gap-1">
+            {playList.map((q, i) => (
+              <span
+                key={q.date}
+                className={`h-1.5 w-4 rounded-full ${i <= playIndex ? "bg-teal-600" : "bg-teal-200"}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
         <StatCard label="Engagements" value={summary?.points ?? "—"} />

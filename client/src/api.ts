@@ -557,6 +557,7 @@ export type CoverageOpportunity = {
   nearest_engagement_km?: number;
   engagement_id?: number;
   note: string;
+  planting_priority?: number;
 };
 
 export type CoverageGapsResponse = {
@@ -588,6 +589,44 @@ export type ShareBundleResponse = {
   portfolio: PortfolioResponse | null;
   text: string;
   share_path: string;
+};
+
+export type RiskRadarResponse = {
+  quarter_end: string;
+  prior_quarter: string | null;
+  rows: Array<{
+    engagement_id: number | null;
+    engagement_name: string;
+    region: string;
+    country: string;
+    health_score: number;
+    urgency: number;
+    flags: string[];
+    delta_score: number | null;
+    classification: string;
+    baptism_band: string;
+    summary: string;
+  }>;
+  meta: { note: string; total_flagged: number };
+};
+
+export type WinWallResponse = {
+  quarter_end: string;
+  prior_quarter: string | null;
+  wins: Array<{
+    engagement_id: number | null;
+    engagement_name: string;
+    region: string;
+    country: string;
+    health_score: number;
+    prior_score: number | null;
+    delta_score: number;
+    classification: string;
+    prior_classification: string | null;
+    headline: string;
+    story_snippet: string | null;
+  }>;
+  meta: { count: number };
 };
 
 export const api = {
@@ -746,6 +785,18 @@ export const api = {
     if (region) q.set("region", region);
     return get<ShareBundleResponse>(`/api/analytics/share-bundle?${q}`);
   },
+  analyticsRiskRadar: (date: string, limit = 25) =>
+    get<RiskRadarResponse>(
+      `/api/analytics/risk-radar?date=${encodeURIComponent(date)}&limit=${limit}`
+    ),
+  analyticsWinWall: (date: string, limit = 8) =>
+    get<WinWallResponse>(
+      `/api/analytics/win-wall?date=${encodeURIComponent(date)}&limit=${limit}`
+    ),
+  analyticsSpokenBrief: (date: string) =>
+    get<{ quarter_end: string; script: string; lines: string[] }>(
+      `/api/analytics/spoken-brief?date=${encodeURIComponent(date)}`
+    ),
 
   quarters: () => get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/data-health/quarters"),
   summary: (date?: string) => get<HealthSummary>(`/api/data-health/summary${date ? `?date=${date}` : ""}`),

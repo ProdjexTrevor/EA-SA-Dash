@@ -17,6 +17,7 @@ export function SharePage() {
   const [region, setRegion] = useState(searchParams.get("region") || "");
   const [data, setData] = useState<ShareBundleResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +83,32 @@ export function SharePage() {
     }
   }
 
+  async function speakBrief() {
+    const date = normalizeQuarterDate(quarter);
+    if (!date || !("speechSynthesis" in window)) {
+      setError("Speech is not available in this browser.");
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const brief = await api.analyticsSpokenBrief(date);
+      const utter = new SpeechSynthesisUtterance(brief.script);
+      utter.rate = 0.95;
+      utter.onend = () => setSpeaking(false);
+      utter.onerror = () => setSpeaking(false);
+      setSpeaking(true);
+      window.speechSynthesis.speak(utter);
+    } catch (e) {
+      setSpeaking(false);
+      setError(e instanceof Error ? e.message : "Speech failed");
+    }
+  }
+
+  function stopSpeak() {
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
+  }
+
   const p = data?.portfolio;
 
   return (
@@ -111,6 +138,13 @@ export function SharePage() {
             className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
           >
             Print / PDF
+          </button>
+          <button
+            type="button"
+            onClick={() => (speaking ? stopSpeak() : speakBrief())}
+            className="rounded-lg border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 hover:bg-teal-100"
+          >
+            {speaking ? "Stop voice" : "Speak brief"}
           </button>
           <button
             type="button"

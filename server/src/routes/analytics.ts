@@ -23,8 +23,11 @@ import {
   getEngagementProfile,
   getMovers,
   getPortfolio,
+  getRiskRadar,
   getShareBundle,
+  getSpokenBrief,
   getStories,
+  getWinWall,
   listEngagementProfiles,
 } from "../portfolioService.js";
 import { getLatestQuarter, listQuarters } from "../healthService.js";
@@ -352,6 +355,35 @@ analyticsRouter.get("/share-bundle", async (req, res, next) => {
     const date = quarterEndParam.parse(req.query.date);
     const region = req.query.region ? z.string().parse(req.query.region) : undefined;
     res.json(await getShareBundle(date, region));
+  } catch (e) {
+    next(e);
+  }
+});
+
+analyticsRouter.get("/risk-radar", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const limit = z.coerce.number().int().min(1).max(50).default(25).parse(req.query.limit ?? 25);
+    res.json(await getRiskRadar(date, limit));
+  } catch (e) {
+    next(e);
+  }
+});
+
+analyticsRouter.get("/win-wall", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    const limit = z.coerce.number().int().min(1).max(20).default(8).parse(req.query.limit ?? 8);
+    res.json(await getWinWall(date, limit));
+  } catch (e) {
+    next(e);
+  }
+});
+
+analyticsRouter.get("/spoken-brief", async (req, res, next) => {
+  try {
+    const date = quarterEndParam.parse(req.query.date);
+    res.json(await getSpokenBrief(date));
   } catch (e) {
     next(e);
   }

@@ -9,7 +9,8 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { api, type EngagementProfileResponse, type GenNode } from "../api";
+import { api, type EngagementProfileResponse } from "../api";
+import { ForceGenTree } from "./WarRoomPage";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -30,6 +31,7 @@ export function EngagementProfilePage() {
   const [data, setData] = useState<EngagementProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const autoPrint = searchParams.get("print") === "1";
 
   const eid =
     engagementId && engagementId !== "name" && !Number.isNaN(Number(engagementId))
@@ -72,10 +74,15 @@ export function EngagementProfilePage() {
         engagement_id: eid,
         name: eid == null ? nameParam : undefined,
       })
-      .then(setData)
+      .then((res) => {
+        setData(res);
+        if (autoPrint) {
+          window.setTimeout(() => window.print(), 600);
+        }
+      })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
-  }, [quarter, eid, nameParam, setSearchParams]);
+  }, [quarter, eid, nameParam, setSearchParams, autoPrint]);
 
   const a = data?.assessment;
   const chartData = useMemo(
@@ -107,10 +114,38 @@ export function EngagementProfilePage() {
             }
           />
         </div>
-        {quarters.length > 0 && (
-          <QuarterSelect value={quarter} options={quarters} onChange={setQuarter} />
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {quarters.length > 0 && (
+            <QuarterSelect value={quarter} options={quarters} onChange={setQuarter} />
+          )}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+          >
+            Coach pack PDF
+          </button>
+          {a?.engagement_id != null && (
+            <Link
+              to={`/war-room?id=${a.engagement_id}&date=${normalizeQuarterDate(quarter) || ""}`}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+            >
+              War room
+            </Link>
+          )}
+        </div>
       </div>
+
+      {/* Print-only coach brief header */}
+      {a && (
+        <div className="mb-4 hidden print:block">
+          <h1 className="text-2xl font-bold">Coach pack — {a.engagement_name}</h1>
+          <p className="text-sm text-slate-600">
+            {a.country} · {formatQuarterLabel(a.reporting_period)} · Health {a.health_score} ·{" "}
+            {a.classification}
+          </p>
+        </div>
+      )}
 
       {error && <ErrorBlock message={error} />}
       {loading && !data && <LoadingBlock />}
@@ -251,30 +286,15 @@ export function EngagementProfilePage() {
             </h2>
             <p className="mb-3 text-[11px] text-slate-500">{data.demo_lineage.note}</p>
             {data.demo_lineage.tree ? (
-              <GenTree node={data.demo_lineage.tree} />
+              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-2">
+                <ForceGenTree tree={data.demo_lineage.tree} />
+              </div>
             ) : (
               <p className="text-xs text-slate-500">No demo tree attached for this profile.</p>
             )}
           </section>
         </>
       )}
-    </div>
-  );
-}
-
-function GenTree({ node, depth = 0 }: { node: GenNode; depth?: number }) {
-  return (
-    <div className={depth === 0 ? "" : "ml-4 border-l border-slate-200 pl-3"}>
-      <div className="mb-1 flex flex-wrap items-baseline gap-2 py-0.5">
-        <span className="text-xs font-semibold text-slate-900">{node.name}</span>
-        <span className="text-[11px] text-slate-500">{node.role}</span>
-        <span className="rounded bg-slate-100 px-1 text-[10px] font-medium text-slate-600">
-          G{node.generation}
-        </span>
-      </div>
-      {node.children?.map((c) => (
-        <GenTree key={`${c.name}-${c.generation}`} node={c} depth={depth + 1} />
-      ))}
     </div>
   );
 }
