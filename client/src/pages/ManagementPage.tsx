@@ -454,7 +454,7 @@ export function ManagementPage() {
           {quarters.length > 0 && (
             <QuarterSelect value={quarter} options={quarters} onChange={setQuarter} />
           )}
-          <Button color="light" size="sm" onClick={() => window.print()}>
+          <Button color="light" size="sm" className="!rounded-xl !shadow-dash-sm" onClick={() => window.print()}>
             Print / PDF
           </Button>
         </div>
@@ -464,8 +464,9 @@ export function ManagementPage() {
         <ReportHelp />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
         <StatCard
+          className="stagger-1"
           label="Engagements reporting"
           value={fmt(reportingSummary?.reporting_this_quarter)}
           hint={
@@ -474,24 +475,36 @@ export function ManagementPage() {
               : "Substantive report this quarter"
           }
         />
-        <StatCard label="New disciples" value={fmt(kpi?.new_disciples)} hint="Worldwide this quarter" />
-        <StatCard label="Baptisms" value={fmt(kpi?.new_baptisms)} />
-        <StatCard label="Churches" value={fmt(kpi?.total_churches)} />
-        <StatCard label="DBS groups" value={fmt(kpi?.dbs)} />
-        <StatCard label="MBB disciples" value={fmt(kpi?.mbb_disciples)} hint="From MBB %" />
+        <StatCard
+          className="stagger-2"
+          label="New disciples"
+          value={fmt(kpi?.new_disciples)}
+          hint="Worldwide this quarter"
+          tone="good"
+        />
+        <StatCard className="stagger-3" label="Baptisms" value={fmt(kpi?.new_baptisms)} />
+        <StatCard className="stagger-4" label="Churches" value={fmt(kpi?.total_churches)} />
+        <StatCard className="stagger-5" label="DBS groups" value={fmt(kpi?.dbs)} />
+        <StatCard
+          className="stagger-6"
+          label="MBB disciples"
+          value={fmt(kpi?.mbb_disciples)}
+          hint="From MBB %"
+        />
       </div>
 
       {error && <ErrorBlock message={error} />}
       {loading && !rollup.length && <LoadingBlock />}
 
       {quarter && !error && (
+        <div className="dash-panel-solid overflow-hidden p-1 sm:p-2">
         <Tabs aria-label="Report sections" variant="underline">
           <TabItem active title="By area">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-1 pt-2">
               <nav className="flex flex-wrap items-center gap-2 text-sm" aria-label="Report location">
                 <button
                   type="button"
-                  className={`font-medium ${level === "region" ? "text-slate-900" : "text-brand-700 hover:underline"}`}
+                  className={`rounded-lg px-2 py-1 font-semibold transition ${level === "region" ? "bg-brand-50 text-ink-900" : "text-brand-700 hover:bg-brand-50/70"}`}
                   onClick={() => drillTo("region")}
                 >
                   All regions
@@ -501,7 +514,7 @@ export function ManagementPage() {
                     <span className="text-slate-300">›</span>
                     <button
                       type="button"
-                      className={`font-medium ${level === "country" ? "text-slate-900" : "text-brand-700 hover:underline"}`}
+                      className={`rounded-lg px-2 py-1 font-semibold transition ${level === "country" ? "bg-brand-50 text-ink-900" : "text-brand-700 hover:bg-brand-50/70"}`}
                       onClick={() => drillTo("country", region)}
                     >
                       {formatPlaceName(region)}
@@ -511,35 +524,37 @@ export function ManagementPage() {
                 {country && (
                   <>
                     <span className="text-slate-300">›</span>
-                    <span className="text-slate-900 font-medium">{formatPlaceName(country)}</span>
+                    <span className="rounded-lg bg-slate-100 px-2 py-1 font-semibold text-ink-900">
+                      {formatPlaceName(country)}
+                    </span>
                   </>
                 )}
               </nav>
               {level !== "region" && (
-                <Button color="light" size="xs" onClick={goBack}>
+                <Button color="light" size="xs" className="!rounded-lg" onClick={goBack}>
                   ← Back
                 </Button>
               )}
             </div>
 
-            <p className="text-sm text-slate-600 mb-3">
-              <strong>{levelLabel[level]}</strong> · {filteredRollup.length} shown
+            <p className="mb-3 px-1 text-sm text-slate-600">
+              <strong className="text-ink-900">{levelLabel[level]}</strong> · {filteredRollup.length} shown
               {canDrill && " · Tap a row or card to drill down"}
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 mb-4 print:hidden">
+            <div className="mb-4 flex flex-wrap items-center gap-3 px-1 print:hidden">
               {(level === "region" || level === "country") && (
-                <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-sm">
+                <div className="inline-flex rounded-xl border border-slate-200/90 bg-slate-50/80 p-0.5 text-sm shadow-dash-sm">
                   <button
                     type="button"
-                    className={`px-3 py-1.5 rounded-md ${areaView === "cards" ? "bg-white shadow-sm font-medium" : "text-slate-600"}`}
+                    className={`rounded-lg px-3 py-1.5 transition ${areaView === "cards" ? "bg-white font-semibold text-ink-900 shadow-dash-sm" : "text-slate-600"}`}
                     onClick={() => setAreaView("cards")}
                   >
                     Cards
                   </button>
                   <button
                     type="button"
-                    className={`px-3 py-1.5 rounded-md ${areaView === "table" ? "bg-white shadow-sm font-medium" : "text-slate-600"}`}
+                    className={`rounded-lg px-3 py-1.5 transition ${areaView === "table" ? "bg-white font-semibold text-ink-900 shadow-dash-sm" : "text-slate-600"}`}
                     onClick={() => setAreaView("table")}
                   >
                     Table
@@ -552,7 +567,7 @@ export function ManagementPage() {
                   placeholder={`Search ${nameHeader.toLowerCase()}…`}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm min-w-[12rem] flex-1 max-w-xs"
+                  className="dash-input min-w-[12rem] max-w-xs flex-1"
                 />
               )}
               <label className="flex items-center gap-2 text-sm text-slate-600">
@@ -599,8 +614,8 @@ export function ManagementPage() {
             </p>
             <div className="space-y-4">
               {missing.slice(0, 12).map((rep) => (
-                <div key={rep.key} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <h3 className="font-semibold text-slate-900 mb-3">{rep.key}</h3>
+                <div key={rep.key} className="dash-panel-solid p-4">
+                  <h3 className="mb-3 font-display font-bold text-ink-900">{rep.key}</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {rep.fields.slice(0, 8).map((f) => (
                       <div key={f.field} className="text-sm">
@@ -678,7 +693,7 @@ export function ManagementPage() {
                 placeholder="Search by name, region, country, or ID…"
                 value={notReportingSearch}
                 onChange={(e) => setNotReportingSearch(e.target.value)}
-                className="mb-4 w-full max-w-md rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="dash-input mb-4 w-full max-w-md"
               />
             )}
             {notReporting.length > 0 ? (
@@ -707,6 +722,7 @@ export function ManagementPage() {
             )}
           </TabItem>
         </Tabs>
+        </div>
       )}
     </div>
   );

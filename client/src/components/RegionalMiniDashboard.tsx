@@ -105,21 +105,21 @@ function MetricBox({ metric, priorLabel }: { metric: MetricYoY; priorLabel: stri
     tone === "up" ? "text-emerald-700" : tone === "down" ? "text-red-700" : "text-slate-600";
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 flex flex-col min-h-[7rem]">
-      <p className="text-xs font-medium text-slate-600 leading-snug">{shortLabel(metric)}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-900 tabular-nums tracking-tight">
+    <div className="flex min-h-[7.25rem] flex-col rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/80 p-3 shadow-dash-sm">
+      <p className="text-xs font-medium leading-snug text-slate-600">{shortLabel(metric)}</p>
+      <p className="mt-2 font-display text-2xl font-extrabold tracking-tight text-ink-900 tabular-nums">
         {fmt(metric.current, metric.key)}
       </p>
-      <div className="mt-auto pt-3 space-y-1 text-xs">
+      <div className="mt-auto space-y-1 pt-3 text-xs">
         <div className="flex justify-between gap-2 text-slate-500">
           <span>{priorLabel}</span>
-          <span className="tabular-nums font-medium text-slate-700">
+          <span className="font-medium tabular-nums text-slate-700">
             {fmt(metric.prior_year, metric.key)}
           </span>
         </div>
         <div className="flex justify-between gap-2">
           <span className="text-slate-500">YoY</span>
-          <span className={`tabular-nums font-semibold ${changeCls}`}>{fmtPct(metric.change_pct)}</span>
+          <span className={`font-semibold tabular-nums ${changeCls}`}>{fmtPct(metric.change_pct)}</span>
         </div>
       </div>
     </div>
@@ -152,14 +152,14 @@ export function RegionalMiniDashboard({ card }: { card: RegionalDashboard }) {
 
   return (
     <article
-      className={`rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden border-l-4 ${trendStyle.border}`}
+      className={`dash-panel-solid overflow-hidden border-l-4 ${trendStyle.border} transition duration-300 hover:-translate-y-0.5 hover:shadow-dash-lg`}
     >
-      <header className="px-4 py-3 border-b border-slate-100">
+      <header className="border-b border-slate-100/90 bg-gradient-to-r from-slate-50/80 to-transparent px-4 py-3.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-bold text-slate-900">{card.region}</h3>
+          <h3 className="font-display text-lg font-bold tracking-tight text-ink-900">{card.region}</h3>
           <YoYTrendBadge summary={card.yoy_summary} />
         </div>
-        <p className="text-xs text-slate-500 mt-1.5">
+        <p className="mt-1.5 text-xs text-slate-500">
           {formatQuarterLabel(card.quarter_end)} vs {priorLabel} · {card.row_count} engagements
         </p>
       </header>
@@ -187,10 +187,12 @@ export function GlobalYoYSummary({
 
   return (
     <div
-      className={`rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden border-l-4 ${trendStyle.border}`}
+      className={`dash-panel-solid overflow-hidden border-l-4 ${trendStyle.border}`}
     >
-      <div className="px-4 py-2.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs text-slate-500">Overall year-over-year</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100/90 bg-gradient-to-r from-slate-50/80 to-transparent px-4 py-2.5">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Overall year-over-year
+        </span>
         <YoYTrendBadge summary={summary} />
       </div>
       <div className="p-4">

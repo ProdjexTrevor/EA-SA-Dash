@@ -2,8 +2,136 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Inter, system-ui, sans-serif;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    background-color: #eef2f1;
+    color: #0f172a;
+  }
+
+  ::selection {
+    background: rgba(16, 185, 129, 0.25);
+  }
+}
+
+@layer components {
+  .dash-canvas {
+    @apply relative min-h-full bg-mesh-main;
+  }
+
+  .dash-canvas::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 180px;
+    mix-blend-mode: multiply;
+  }
+
+  .dash-panel {
+    @apply relative rounded-2xl border border-white/70 bg-white/80 shadow-dash backdrop-blur-sm;
+  }
+
+  .dash-panel-solid {
+    @apply relative rounded-2xl border border-slate-200/80 bg-white shadow-dash;
+  }
+
+  .dash-stat {
+    @apply relative overflow-hidden rounded-2xl border border-white/80 bg-white/90 p-4 shadow-dash backdrop-blur-sm transition duration-300 sm:p-5;
+  }
+
+  .dash-stat::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10b981, #0e7490 55%, #f59e0b);
+    opacity: 0.85;
+  }
+
+  .dash-stat:hover {
+    @apply -translate-y-0.5 shadow-dash-lg;
+  }
+
+  .dash-stat-good {
+    @apply border-emerald-200/70 bg-gradient-to-br from-white to-emerald-50/80;
+  }
+
+  .dash-stat-warn {
+    @apply border-amber-200/70 bg-gradient-to-br from-white to-amber-50/70;
+  }
+
+  .dash-stat-bad {
+    @apply border-red-200/70 bg-gradient-to-br from-white to-red-50/70;
+  }
+
+  .dash-nav-link {
+    @apply relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-emerald-100/75 transition duration-200;
+  }
+
+  .dash-nav-link:hover {
+    @apply bg-white/10 text-white;
+  }
+
+  .dash-nav-link-active {
+    @apply bg-gradient-to-r from-emerald-500/25 to-teal-400/10 text-white shadow-glow ring-1 ring-emerald-400/30;
+  }
+
+  .dash-table-shell {
+    @apply overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-dash;
+  }
+
+  .dash-input {
+    @apply rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 text-sm shadow-dash-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
+  }
+
+  .dash-btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-semibold transition duration-200;
+  }
+
+  .dash-btn-primary {
+    @apply dash-btn bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-dash-sm hover:from-brand-400 hover:to-brand-600 hover:shadow-glow;
+  }
+
+  .dash-btn-ghost {
+    @apply dash-btn border border-slate-200/90 bg-white/80 text-slate-700 shadow-dash-sm hover:border-brand-200 hover:bg-brand-50/50 hover:text-brand-900;
+  }
+
+  .stagger-1 {
+    animation: fade-up 0.45s ease-out both;
+    animation-delay: 0.04s;
+  }
+  .stagger-2 {
+    animation: fade-up 0.45s ease-out both;
+    animation-delay: 0.08s;
+  }
+  .stagger-3 {
+    animation: fade-up 0.45s ease-out both;
+    animation-delay: 0.12s;
+  }
+  .stagger-4 {
+    animation: fade-up 0.45s ease-out both;
+    animation-delay: 0.16s;
+  }
+  .stagger-5 {
+    animation: fade-up 0.45s ease-out both;
+    animation-delay: 0.2s;
+  }
+  .stagger-6 {
+    animation: fade-up 0.45s ease-out both;
+    animation-delay: 0.24s;
+  }
+}
+
+/* Tremor metric polish inside our cards */
+.tremor-Card-root {
+  @apply !rounded-2xl !border-slate-200/80 !shadow-dash;
 }
 
 @media print {
@@ -16,5 +144,17 @@ body {
   }
   body {
     background: white;
+  }
+  .dash-canvas::before,
+  .dash-stat::after {
+    display: none !important;
+  }
+  .dash-panel,
+  .dash-panel-solid,
+  .dash-stat,
+  .dash-table-shell {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    background: white !important;
   }
 }

@@ -93,11 +93,11 @@ export function SortableTable<T>({
   const stickyIdx = stickyFirstColumn ? stickyColumnIndex : -1;
   const stickyTh =
     stickyIdx >= 0
-      ? "sticky left-0 z-20 bg-slate-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
+      ? "sticky left-0 z-20 bg-gradient-to-b from-slate-50 to-slate-100/80 shadow-[2px_0_8px_-2px_rgba(15,28,25,0.08)]"
       : "";
   const stickyTd =
     stickyIdx >= 0
-      ? "sticky left-0 z-10 bg-white shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] group-hover:bg-slate-50"
+      ? "sticky left-0 z-10 bg-white shadow-[2px_0_8px_-2px_rgba(15,28,25,0.06)] group-hover:bg-brand-50/90"
       : "";
 
   function metaFor(columnDef: { meta?: unknown }): TableColumnMeta | undefined {
@@ -113,12 +113,12 @@ export function SortableTable<T>({
   const rangeEnd = total === 0 ? 0 : Math.min((pageIndex + 1) * pageSize, total);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="dash-table-shell">
       <div className="overflow-x-auto">
         <table
           className={`w-full text-sm ${tableLayout === "fixed" ? "table-fixed" : "table-auto min-w-max"}`}
         >
-          <thead className="bg-slate-50 border-b border-slate-200">
+          <thead className="border-b border-slate-200/90 bg-gradient-to-b from-slate-50 to-slate-100/80">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((h, i) => {
@@ -128,7 +128,7 @@ export function SortableTable<T>({
                     <th
                       key={h.id}
                       style={meta?.minWidth ? { minWidth: meta.minWidth, width: meta.minWidth } : undefined}
-                      className={`${cellPad} text-xs font-semibold text-slate-600 align-bottom ${
+                      className={`${cellPad} text-[11px] font-bold uppercase tracking-wide text-slate-500 align-bottom ${
                         meta?.nowrap !== false ? "whitespace-nowrap" : ""
                       } ${align === "right" ? "text-right" : "text-left"} ${
                         i === stickyIdx ? stickyTh : ""
@@ -137,7 +137,7 @@ export function SortableTable<T>({
                       {h.isPlaceholder ? null : (
                         <button
                           type="button"
-                          className={`flex items-center gap-1 hover:text-slate-900 w-full ${
+                          className={`flex items-center gap-1 hover:text-ink-900 w-full ${
                             align === "right" ? "justify-end" : "justify-start"
                           }`}
                           onClick={h.column.getToggleSortingHandler()}
@@ -152,12 +152,14 @@ export function SortableTable<T>({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100/90">
             {rows.map((row) => (
               <tr
                 key={row.id}
-                className={`group ${rowAlign} ${
-                  onRowClick ? "cursor-pointer hover:bg-brand-50/50" : "hover:bg-slate-50/80"
+                className={`group ${rowAlign} transition-colors duration-150 ${
+                  onRowClick
+                    ? "cursor-pointer hover:bg-gradient-to-r hover:from-brand-50/80 hover:to-transparent"
+                    : "hover:bg-slate-50/90"
                 }`}
                 onClick={onRowClick ? () => onRowClick(row.original) : undefined}
               >
