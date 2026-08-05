@@ -9,14 +9,19 @@ export type DbConfig = {
   ssl: boolean;
 };
 
+function env(name: string, fallback = ""): string {
+  // Trim — Windows / CLI env injection can leave CR/LF and break DNS (ENOTFOUND).
+  return (process.env[name] ?? fallback).trim();
+}
+
 export function loadDbConfig(): DbConfig {
   return {
-    host: process.env.MYSQL_HOST ?? "",
-    port: Number(process.env.MYSQL_PORT ?? 3306),
-    user: process.env.MYSQL_USER ?? "",
-    password: process.env.MYSQL_PASSWORD ?? "",
-    database: process.env.MYSQL_DATABASE ?? "",
-    ssl: (process.env.MYSQL_SSL ?? "").toLowerCase() === "true",
+    host: env("MYSQL_HOST"),
+    port: Number(env("MYSQL_PORT", "3306")),
+    user: env("MYSQL_USER"),
+    password: env("MYSQL_PASSWORD"),
+    database: env("MYSQL_DATABASE"),
+    ssl: env("MYSQL_SSL").toLowerCase() === "true",
   };
 }
 
