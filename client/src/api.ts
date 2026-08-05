@@ -495,6 +495,51 @@ export const api = {
   },
   analyticsHealthMap: (date: string) =>
     get<HealthMapResponse>(`/api/analytics/health-map?date=${encodeURIComponent(date)}`),
+  analyticsHealthMapBoundaries: (params: {
+    level: 1 | 2;
+    country?: string;
+    bbox?: string;
+  }) => {
+    const q = new URLSearchParams({ level: String(params.level) });
+    if (params.country) q.set("country", params.country);
+    if (params.bbox) q.set("bbox", params.bbox);
+    return get<{
+      type: "FeatureCollection";
+      features: Array<{
+        type: "Feature";
+        properties: {
+          id: number;
+          country_iso: string;
+          country_name: string;
+          shape_name: string;
+          adm_level: number;
+          centroid_lat: number | null;
+          centroid_lon: number | null;
+        };
+        geometry: unknown;
+      }>;
+      meta: { count: number; source: string; level: number };
+    }>(`/api/analytics/health-map/boundaries?${q}`);
+  },
+  analyticsHealthMapPlaces: (params?: { min_pop?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.min_pop != null) q.set("min_pop", String(params.min_pop));
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    const qs = q.toString();
+    return get<{
+      places: Array<{
+        id: number;
+        name: string;
+        place_class: string | null;
+        country_iso: string | null;
+        country_name: string | null;
+        latitude: number;
+        longitude: number;
+        population: number | null;
+      }>;
+      meta: { count: number; source: string };
+    }>(`/api/analytics/health-map/places${qs ? `?${qs}` : ""}`);
+  },
 
   quarters: () => get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/data-health/quarters"),
   summary: (date?: string) => get<HealthSummary>(`/api/data-health/summary${date ? `?date=${date}` : ""}`),

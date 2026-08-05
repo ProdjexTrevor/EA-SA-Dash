@@ -14,7 +14,9 @@
     "build:vercel": "node scripts/build-vercel-api.mjs && npm run build --prefix client",
     "start": "npm run start --prefix server",
     "seed:dash": "python scripts/create_and_seed_dash_tables.py",
-    "seed:geo": "python scripts/seed_dash_engagement_geo.py"
+    "seed:geo": "python scripts/seed_dash_engagement_geo.py",
+    "seed:map-layers": "python scripts/seed_dash_map_layers.py",
+    "seed:all-map": "python scripts/seed_dash_engagement_geo.py && python scripts/seed_dash_map_layers.py"
   },
   "dependencies": {
     "cors": "^2.8.5",

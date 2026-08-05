@@ -2,13 +2,16 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Circle,
   CircleMarker,
+  GeoJSON,
   MapContainer,
+  Marker,
   Pane,
   Popup,
   TileLayer,
   Tooltip,
   useMap,
 } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { api, type HealthMapPoint } from "../api";
 import {
@@ -59,6 +62,54 @@ function scoreColor(score: number): string {
   if (score >= 25) return "#ea580c";
   return "#b91c1c";
 }
+
+function labeledPlaceIcon(name: string, pop: number | null) {
+  const big = (pop ?? 0) >= 500000;
+  const esc = name.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string)
+  );
+  return L.divIcon({
+    className: "bg-transparent border-0",
+    html: `<div style="
+      background:${big ? "#0f766e" : "#1e293b"};
+      color:#fff;
+      font:600 ${big ? 11 : 10}px/1.2 'Plus Jakarta Sans',system-ui,sans-serif;
+      padding:2px 6px;
+      border-radius:4px;
+      white-space:nowrap;
+      box-shadow:0 1px 3px rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.35);
+    ">${esc}</div>`,
+    iconSize: [1, 1],
+    iconAnchor: [0, 0],
+  });
+}
+
+type BoundaryFC = {
+  type: "FeatureCollection";
+  features: Array<{
+    type: "Feature";
+    properties: {
+      id: number;
+      country_iso: string;
+      country_name: string;
+      shape_name: string;
+      adm_level: number;
+    };
+    geometry: object;
+  }>;
+};
+
+type PlaceRow = {
+  id: number;
+  name: string;
+  place_class: string | null;
+  latitude: number;
+  longitude: number;
+  population: number | null;
+  country_name: string | null;
+};
+
 
 function FitBounds({ points }: { points: HealthMapPoint[] }) {
   const map = useMap();
@@ -200,6 +251,13 @@ export function HealthMapPage() {
   const [showPlaceLabels, setShowPlaceLabels] = useState(true);
   const [showBoundaries, setShowBoundaries] = useState(false);
   const [showRoads, setShowRoads] = useState(false);
+  const [showProvinces, setShowProvinces] = useState(true);
+  const [showDistricts, setShowDistricts] = useState(false);
+  const [showCities, setShowCities] = useState(true);
+  const [adm1, setAdm1] = useState<BoundaryFC | null>(null);
+  const [adm2, setAdm2] = useState<BoundaryFC | null>(null);
+  const [places, setPlaces] = useState<PlaceRow[]>([]);
+  const [layerNote, setLayerNote] = useState("");
 
   useEffect(() => {
     api
@@ -213,6 +271,29 @@ export function HealthMapPage() {
       })
       .catch((e) => setError(e.message));
   }, []);
+
+  useEffect(() => {
+    // Seeded Dash layers (province / district / cities)
+    api
+      .analyticsHealthMapBoundaries({ level: 1 })
+      .then((fc) => {
+        setAdm1(fc as BoundaryFC);
+        setLayerNote(fc.meta.source);
+      })
+      .catch(() => setAdm1(null));
+    api
+      .analyticsHealthMapPlaces({ min_pop: 20000, limit: 1200 })
+      .then((r) => setPlaces(r.places))
+      .catch(() => setPlaces([]));
+  }, []);
+
+  useEffect(() => {
+    if (!showDistricts || adm2) return;
+    api
+      .analyticsHealthMapBoundaries({ level: 2 })
+      .then((fc) => setAdm2(fc as BoundaryFC))
+      .catch(() => setAdm2(null));
+  }, [showDistricts, adm2]);
 
   useEffect(() => {
     const date = normalizeQuarterDate(quarter);
@@ -300,11 +381,38 @@ export function HealthMapPage() {
         <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
           <input
             type="checkbox"
+            checked={showProvinces}
+            onChange={(e) => setShowProvinces(e.target.checked)}
+            className="rounded border-slate-300 text-brand-600"
+          />
+          Provinces (ADM1)
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <input
+            type="checkbox"
+            checked={showDistricts}
+            onChange={(e) => setShowDistricts(e.target.checked)}
+            className="rounded border-slate-300 text-brand-600"
+          />
+          Districts / counties (ADM2)
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <input
+            type="checkbox"
+            checked={showCities}
+            onChange={(e) => setShowCities(e.target.checked)}
+            className="rounded border-slate-300 text-brand-600"
+          />
+          Major towns
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <input
+            type="checkbox"
             checked={showPlaceLabels}
             onChange={(e) => setShowPlaceLabels(e.target.checked)}
             className="rounded border-slate-300 text-brand-600"
           />
-          Towns &amp; villages
+          OSM village labels
         </label>
         <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
           <input
@@ -313,7 +421,7 @@ export function HealthMapPage() {
             onChange={(e) => setShowBoundaries(e.target.checked)}
             className="rounded border-slate-300 text-brand-600"
           />
-          Boundaries &amp; places
+          Raster boundaries
         </label>
         <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
           <input
@@ -355,6 +463,75 @@ export function HealthMapPage() {
                 url={base.url}
                 maxZoom={base.maxZoom ?? 19}
               />
+
+              {/* GeoJSON provinces (Dash_AdminBoundaries ADM1) */}
+              {showProvinces && adm1 && adm1.features.length > 0 && (
+                <Pane name="adm1" style={{ zIndex: 320 }}>
+                  <GeoJSON
+                    key={`adm1-${adm1.features.length}`}
+                    data={adm1 as never}
+                    style={() => ({
+                      color: "#0f766e",
+                      weight: 1.2,
+                      fillColor: "#14b8a6",
+                      fillOpacity: 0.06,
+                      opacity: 0.75,
+                    })}
+                    onEachFeature={(feature, layer) => {
+                      const n = feature.properties?.shape_name;
+                      const c = feature.properties?.country_name;
+                      layer.bindTooltip(`${n}${c ? ` · ${c}` : ""}`, { sticky: true });
+                    }}
+                  />
+                </Pane>
+              )}
+
+              {/* GeoJSON districts (ADM2) — loaded on first enable */}
+              {showDistricts && adm2 && adm2.features.length > 0 && (
+                <Pane name="adm2" style={{ zIndex: 330 }}>
+                  <GeoJSON
+                    key={`adm2-${adm2.features.length}`}
+                    data={adm2 as never}
+                    style={() => ({
+                      color: "#1e40af",
+                      weight: 0.7,
+                      fillColor: "#3b82f6",
+                      fillOpacity: 0.04,
+                      opacity: 0.55,
+                    })}
+                    onEachFeature={(feature, layer) => {
+                      const n = feature.properties?.shape_name;
+                      const c = feature.properties?.country_name;
+                      layer.bindTooltip(`${n}${c ? ` · ${c}` : ""} (district)`, {
+                        sticky: true,
+                      });
+                    }}
+                  />
+                </Pane>
+              )}
+
+              {/* Major towns from Dash_PlaceLabels */}
+              {showCities && (
+                <Pane name="cities" style={{ zIndex: 460 }}>
+                  {places.map((pl) => (
+                    <Marker
+                      key={pl.id}
+                      position={[pl.latitude, pl.longitude]}
+                      icon={labeledPlaceIcon(pl.name, pl.population)}
+                    >
+                      <Popup>
+                        <div className="text-sm">
+                          <p className="font-bold">{pl.name}</p>
+                          <p>{pl.country_name}</p>
+                          {pl.population != null && (
+                            <p>Pop. ~{pl.population.toLocaleString()}</p>
+                          )}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </Pane>
+              )}
 
               {/* Roads under labels */}
               {showRoads && (
@@ -452,120 +629,50 @@ export function HealthMapPage() {
             </MapContainer>
           )}
           {!loading && !visible.length && (
-            <div className="flex h-full items-center justify-center p-8 text-center text-slate-700">
-              No mapped points. Run:{" "}
-              <code className="mx-1 rounded bg-slate-200 px-1">
-                python scripts/seed_dash_engagement_geo.py
-              </code>
+            <div className="flex h-full flex-col items-center justify-center gap-1 p-8 text-center text-slate-700">
+              <p>
+                No mapped points. Run:{" "}
+                <code className="mx-1 rounded bg-slate-200 px-1">npm run seed:geo</code>
+              </p>
+              <p>
+                For provinces/districts:{" "}
+                <code className="mx-1 rounded bg-slate-200 px-1">npm run seed:map-layers</code>
+              </p>
             </div>
           )}
         </div>
         {selected && <DetailPanel point={selected} onClose={() => setSelected(null)} />}
       </div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
-        <p className="font-bold text-slate-900">Map overlays available for Africa</p>
-        <p className="mt-1 text-slate-700">
-          Use the toggles above. Place names densify as you zoom (town → village). True
-          county/ward polygons need a boundary dataset (below).
+      {layerNote && (
+        <p className="mt-2 text-xs font-medium text-slate-600">
+          {layerNote}
+          {adm1 ? ` · ADM1 features: ${adm1.features.length}` : " · ADM1 not seeded"}
+          {adm2 ? ` · ADM2 features: ${adm2.features.length}` : ""}
+          {places.length ? ` · towns: ${places.length}` : ""}
         </p>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-slate-700">
-                <th className="py-2 pr-3 font-semibold">Option</th>
-                <th className="py-2 pr-3 font-semibold">What you get</th>
-                <th className="py-2 pr-3 font-semibold">Cost / setup</th>
-                <th className="py-2 font-semibold">Status on this map</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              <tr>
-                <td className="py-2 pr-3 font-medium">CARTO / OSM labels</td>
-                <td className="py-2 pr-3">City, town, village names from OpenStreetMap</td>
-                <td className="py-2 pr-3">Free tile overlay, no key</td>
-                <td className="py-2">On — “Towns &amp; villages”</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-3 font-medium">Esri Boundaries &amp; Places</td>
-                <td className="py-2 pr-3">Admin lines + place names at mid zoom</td>
-                <td className="py-2 pr-3">Free raster reference tiles*</td>
-                <td className="py-2">On — “Boundaries &amp; places”</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-3 font-medium">Esri Transportation</td>
-                <td className="py-2 pr-3">Major roads for context</td>
-                <td className="py-2 pr-3">Free raster reference tiles*</td>
-                <td className="py-2">On — “Roads”</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-3 font-medium">
-                  <a
-                    className="text-emerald-800 underline"
-                    href="https://www.geoboundaries.org/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    geoBoundaries
-                  </a>
-                </td>
-                <td className="py-2 pr-3">
-                  True county/district polygons (ADM1–ADM2, sometimes ADM3) per African country
-                </td>
-                <td className="py-2 pr-3">Free CC BY — GeoJSON download / API</td>
-                <td className="py-2">Not loaded yet (file size)</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-3 font-medium">
-                  <a
-                    className="text-emerald-800 underline"
-                    href="https://data.humdata.org/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    HDX / OCHA COD
-                  </a>
-                </td>
-                <td className="py-2 pr-3">Humanitarian admin boundaries by country</td>
-                <td className="py-2 pr-3">Free; download per country</td>
-                <td className="py-2">Not loaded yet</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-3 font-medium">
-                  <a
-                    className="text-emerald-800 underline"
-                    href="https://www.geonames.org/"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    GeoNames
-                  </a>{" "}
-                  / place NDJSON
-                </td>
-                <td className="py-2 pr-3">Point localities (town/village) you can seed into Dash_*</td>
-                <td className="py-2 pr-3">Free with attribution</td>
-                <td className="py-2">Optional next step</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-3 font-medium">Protomaps / MapLibre / MapTiler</td>
-                <td className="py-2 pr-3">Vector places + boundaries, best village density</td>
-                <td className="py-2 pr-3">Free tier or self-host PMTiles</td>
-                <td className="py-2">Not integrated</td>
-              </tr>
-              <tr>
-                <td className="py-2 pr-3 font-medium">GADM</td>
-                <td className="py-2 pr-3">Detailed admin polygons globally</td>
-                <td className="py-2 pr-3">Free for non-commercial; license limits</td>
-                <td className="py-2">Avoid unless license OK</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      )}
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
+        <p className="font-bold text-slate-900">What was added to Health Map</p>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            <strong>Provinces (ADM1)</strong> and <strong>districts (ADM2)</strong> polygons from{" "}
+            <a className="text-emerald-800 underline" href="https://www.geoboundaries.org/" target="_blank" rel="noreferrer">
+              geoBoundaries
+            </a>{" "}
+            stored in <code className="rounded bg-slate-100 px-1">Dash_AdminBoundaries</code>
+          </li>
+          <li>
+            <strong>Major towns</strong> from Natural Earth into{" "}
+            <code className="rounded bg-slate-100 px-1">Dash_PlaceLabels</code>
+          </li>
+          <li>OSM/CARTO village labels, Esri roads, Esri raster boundaries, basemap switcher</li>
+          <li>All DB writes are Dash_* only</li>
+        </ul>
         <p className="mt-3 text-xs text-slate-600">
-          *Esri public tile services are convenient for demos; check Esri’s terms if you go
-          production. For county polygons we recommend seed into{" "}
-          <code className="rounded bg-slate-100 px-1">Dash_*</code> from geoBoundaries (still
-          Dash-only).
+          Seed commands: <code className="rounded bg-slate-100 px-1">npm run seed:geo</code> ·{" "}
+          <code className="rounded bg-slate-100 px-1">npm run seed:map-layers</code>
         </p>
       </div>
 

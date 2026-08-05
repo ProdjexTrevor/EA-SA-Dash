@@ -14,6 +14,7 @@ import {
 } from "../engagementHealthService.js";
 import { getDmmHealthAssessments } from "../dmmHealthService.js";
 import { getHealthMap } from "../healthMapService.js";
+import { getAdminBoundaries, getPlaceLabels } from "../mapLayersService.js";
 import { getLatestQuarter, listQuarters } from "../healthService.js";
 import { quarterEndParam } from "../quarterDates.js";
 import {
@@ -226,6 +227,42 @@ analyticsRouter.get("/health-map", async (req, res, next) => {
     const date = quarterEndParam.parse(req.query.date);
     const result = await getHealthMap(date);
     res.json(result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Provinces (ADM1) or districts (ADM2) polygons from Dash_AdminBoundaries. */
+analyticsRouter.get("/health-map/boundaries", async (req, res, next) => {
+  try {
+    const level = z.coerce.number().int().min(1).max(2).parse(req.query.level ?? 1) as 1 | 2;
+    const country_iso = req.query.country
+      ? z.string().length(3).parse(String(req.query.country).toUpperCase())
+      : undefined;
+    let bbox: [number, number, number, number] | undefined;
+    if (typeof req.query.bbox === "string" && req.query.bbox.trim()) {
+      const parts = req.query.bbox.split(",").map(Number);
+      if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
+        bbox = [parts[0], parts[1], parts[2], parts[3]];
+      }
+    }
+    const result = await getAdminBoundaries({ level, country_iso, bbox });
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Major towns/cities from Dash_PlaceLabels (Natural Earth seed). */
+analyticsRouter.get("/health-map/places", async (req, res, next) => {
+  try {
+    const min_population = req.query.min_pop
+      ? z.coerce.number().int().min(0).parse(req.query.min_pop)
+      : 25000;
+    const limit = req.query.limit
+      ? z.coerce.number().int().min(1).max(5000).parse(req.query.limit)
+      : 1500;
+    res.json(await getPlaceLabels({ min_population, limit }));
   } catch (e) {
     next(e);
   }
