@@ -1,4 +1,4 @@
-import { BadgeDelta, Card, Flex } from "@tremor/react";
+import { Card, Flex } from "@tremor/react";
 import type { RollupRow } from "../api";
 
 function fmt(n: number | null | undefined): string {
@@ -6,16 +6,31 @@ function fmt(n: number | null | undefined): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
-function deltaType(n: number | null | undefined): "increase" | "decrease" | "unchanged" {
-  if (n == null || n === 0) return "unchanged";
-  return n > 0 ? "increase" : "decrease";
-}
-
 const REGION_ACCENTS: Record<string, string> = {
   "East Africa": "from-emerald-500 to-teal-600",
   "Southern Africa": "from-cyan-500 to-sky-700",
   "The Moon": "from-amber-400 to-orange-600",
 };
+
+function DeltaBadge({ pct }: { pct: number }) {
+  const up = pct > 0;
+  const flat = pct === 0;
+  const label = `${up ? "+" : ""}${pct}%`;
+  const cls = flat
+    ? "bg-slate-200 text-slate-800"
+    : up
+      ? "bg-emerald-700 text-white"
+      : "bg-red-700 text-white";
+  const arrow = flat ? "→" : up ? "↑" : "↓";
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-0.5 rounded-md px-2 py-0.5 text-xs font-bold tabular-nums ${cls}`}
+    >
+      <span aria-hidden>{arrow}</span>
+      {label}
+    </span>
+  );
+}
 
 export function AreaSummaryCards({
   rows,
@@ -46,45 +61,42 @@ export function AreaSummaryCards({
                 <Flex alignItems="start" justifyContent="between" className="gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-base font-semibold text-slate-900">{row.label}</p>
-                    <p className="mt-0.5 text-sm text-slate-600">
+                    <p className="mt-0.5 text-sm font-medium text-slate-700">
                       {fmt(row.row_count)} engagements
                     </p>
                   </div>
-                  {chg != null && (
-                    <BadgeDelta deltaType={deltaType(chg)} size="xs">
-                      {chg > 0 ? "+" : ""}
-                      {chg}%
-                    </BadgeDelta>
-                  )}
+                  {chg != null && <DeltaBadge pct={chg} />}
                 </Flex>
 
                 <p className="mt-3 text-3xl font-bold tabular-nums text-slate-900">
                   {fmt(row.new_disciples)}
                 </p>
-                <p className="mt-0.5 text-sm text-slate-600">new disciples this quarter</p>
+                <p className="mt-1 text-sm font-medium text-slate-700">
+                  new disciples this quarter
+                </p>
 
                 <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-200 pt-3">
                   <div>
-                    <p className="text-sm text-slate-600">Baptisms</p>
-                    <p className="mt-0.5 text-base font-semibold tabular-nums text-slate-900">
+                    <p className="text-sm font-medium text-slate-700">Baptisms</p>
+                    <p className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
                       {fmt(row.new_baptisms)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-600">Churches</p>
-                    <p className="mt-0.5 text-base font-semibold tabular-nums text-slate-900">
+                    <p className="text-sm font-medium text-slate-700">Churches</p>
+                    <p className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
                       {fmt(row.total_churches)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-600">DBS</p>
-                    <p className="mt-0.5 text-base font-semibold tabular-nums text-slate-900">
+                    <p className="text-sm font-medium text-slate-700">DBS</p>
+                    <p className="mt-0.5 text-base font-bold tabular-nums text-slate-900">
                       {fmt(row.dbs)}
                     </p>
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm font-medium text-brand-700">Open detail →</p>
+                <p className="mt-3 text-sm font-semibold text-emerald-800">Open detail →</p>
               </div>
             </Card>
           </button>
