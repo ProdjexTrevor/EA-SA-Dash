@@ -18,6 +18,7 @@ import { SharePage } from "./pages/SharePage";
 import { WinWallPage } from "./pages/WinWallPage";
 import { RiskRadarPage } from "./pages/RiskRadarPage";
 import { WarRoomPage } from "./pages/WarRoomPage";
+import { AppGrowthPage } from "./pages/AppGrowthPage";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -41,6 +42,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/engagement/:engagementId" element={<EngagementProfilePage />} />
           <Route path="/stories" element={<StoriesPage />} />
           <Route path="/share" element={<SharePage />} />
+          <Route path="/app-spread" element={<AppGrowthPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

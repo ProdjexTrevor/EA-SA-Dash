@@ -17,7 +17,8 @@
     "seed:geo": "python scripts/seed_dash_engagement_geo.py",
     "seed:map-layers": "python scripts/seed_dash_map_layers.py",
     "seed:map-villages": "python scripts/seed_dash_map_layers.py --levels 3,4 --admin-only",
-    "seed:all-map": "python scripts/seed_dash_engagement_geo.py && python scripts/seed_dash_map_layers.py"
+    "seed:all-map": "python scripts/seed_dash_engagement_geo.py && python scripts/seed_dash_map_layers.py",
+    "seed:app-growth": "python scripts/seed_dash_app_growth.py"
   },
   "dependencies": {
     "cors": "^2.8.5",

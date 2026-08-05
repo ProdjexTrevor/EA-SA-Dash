@@ -30,7 +30,9 @@ import {
   getWinWall,
   listEngagementProfiles,
 } from "../portfolioService.js";
+import { getAppGrowthInvites, getAppGrowthOverview, getAppGrowthUsers, getAppInviteTree } from "../appGrowthService.js";
 import { getLatestQuarter, listQuarters } from "../healthService.js";
+
 import { quarterEndParam } from "../quarterDates.js";
 import {
   COMPARISON_METRICS,
@@ -384,6 +386,54 @@ analyticsRouter.get("/spoken-brief", async (req, res, next) => {
   try {
     const date = quarterEndParam.parse(req.query.date);
     res.json(await getSpokenBrief(date));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Mock app product growth: installs + invite codes + geo. */
+analyticsRouter.get("/app-growth", async (_req, res, next) => {
+  try {
+    res.json(await getAppGrowthOverview());
+  } catch (e) {
+    next(e);
+  }
+});
+
+analyticsRouter.get("/app-growth/users", async (req, res, next) => {
+  try {
+    const region = req.query.region ? z.string().parse(req.query.region) : undefined;
+    const min_generation = req.query.min_generation
+      ? z.coerce.number().int().min(0).parse(req.query.min_generation)
+      : undefined;
+    const max_generation = req.query.max_generation
+      ? z.coerce.number().int().min(0).parse(req.query.max_generation)
+      : undefined;
+    const limit = req.query.limit
+      ? z.coerce.number().int().min(1).max(2000).parse(req.query.limit)
+      : 500;
+    res.json(await getAppGrowthUsers({ region, min_generation, max_generation, limit }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+analyticsRouter.get("/app-growth/invites", async (req, res, next) => {
+  try {
+    const status = req.query.status ? z.string().parse(req.query.status) : undefined;
+    const limit = req.query.limit
+      ? z.coerce.number().int().min(1).max(1500).parse(req.query.limit)
+      : 400;
+    res.json(await getAppGrowthInvites({ status, limit }));
+  } catch (e) {
+    next(e);
+  }
+});
+
+analyticsRouter.get("/app-growth/tree", async (req, res, next) => {
+  try {
+    const code = z.string().min(1).parse(req.query.code);
+    res.json(await getAppInviteTree(code));
   } catch (e) {
     next(e);
   }

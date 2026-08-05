@@ -629,6 +629,70 @@ export type WinWallResponse = {
   meta: { count: number };
 };
 
+export type AppGrowthUser = {
+  user_id: number;
+  display_name: string;
+  invite_code: string;
+  referred_by_code: string | null;
+  referred_by_user_id: number | null;
+  generation: number;
+  latitude: number;
+  longitude: number;
+  city: string | null;
+  country: string | null;
+  region: string | null;
+  platform: string;
+  installed_at: string;
+  last_active_at: string | null;
+  session_count: number;
+  is_seed: boolean;
+};
+
+export type AppGrowthEdge = {
+  invite_id: number;
+  invite_code: string;
+  inviter_user_id: number;
+  invitee_user_id: number | null;
+  channel: string;
+  status: string;
+  created_at: string;
+  redeemed_at: string | null;
+  from_lat: number | null;
+  from_lon: number | null;
+  to_lat: number | null;
+  to_lon: number | null;
+  inviter_name?: string;
+  invitee_name?: string;
+};
+
+export type AppGrowthOverviewResponse = {
+  ready: boolean;
+  summary: {
+    users: number;
+    installs_last_30d: number;
+    invites_sent: number;
+    invites_redeemed: number;
+    redemption_rate: number | null;
+    events: number;
+    avg_generation: number;
+    max_generation: number;
+    active_codes: number;
+  };
+  by_region: Array<{ region: string; users: number; avg_generation: number }>;
+  by_platform: Array<{ platform: string; users: number }>;
+  top_codes: Array<{
+    invite_code: string;
+    owner_name: string;
+    owner_user_id: number;
+    redeemed: number;
+    sent: number;
+    city: string | null;
+    country: string | null;
+  }>;
+  install_timeline: Array<{ day: string; installs: number }>;
+  meta: { note: string; seed_command: string };
+};
+
 export const api = {
   analyticsQuarters: () =>
     get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/analytics/quarters"),
@@ -797,6 +861,39 @@ export const api = {
     get<{ quarter_end: string; script: string; lines: string[] }>(
       `/api/analytics/spoken-brief?date=${encodeURIComponent(date)}`
     ),
+
+  analyticsAppGrowth: () => get<AppGrowthOverviewResponse>("/api/analytics/app-growth"),
+  analyticsAppGrowthUsers: (params?: {
+    region?: string;
+    min_generation?: number;
+    max_generation?: number;
+    limit?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.region) q.set("region", params.region);
+    if (params?.min_generation != null) q.set("min_generation", String(params.min_generation));
+    if (params?.max_generation != null) q.set("max_generation", String(params.max_generation));
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    const qs = q.toString();
+    return get<{ users: AppGrowthUser[]; meta: { count: number } }>(
+      `/api/analytics/app-growth/users${qs ? `?${qs}` : ""}`
+    );
+  },
+  analyticsAppGrowthInvites: (params?: { status?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    const qs = q.toString();
+    return get<{ edges: AppGrowthEdge[]; meta: { count: number } }>(
+      `/api/analytics/app-growth/invites${qs ? `?${qs}` : ""}`
+    );
+  },
+  analyticsAppGrowthTree: (code: string) =>
+    get<{
+      root: AppGrowthUser | null;
+      members: AppGrowthUser[];
+      edges: Array<{ parent_id: number; child_id: number }>;
+    }>(`/api/analytics/app-growth/tree?code=${encodeURIComponent(code)}`),
 
   quarters: () => get<{ latest: string; quarters: { date: string; row_count: number }[] }>("/api/data-health/quarters"),
   summary: (date?: string) => get<HealthSummary>(`/api/data-health/summary${date ? `?date=${date}` : ""}`),

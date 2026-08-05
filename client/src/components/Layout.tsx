@@ -17,6 +17,7 @@ import {
   ScaleIcon,
   SparklesIcon,
   UserGroupIcon,
+  DevicePhoneMobileIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { Badge } from "@tremor/react";
@@ -41,6 +42,10 @@ const briefingLinks = [
   { to: "/profiles", label: "Profiles", end: false, icon: UserGroupIcon },
   { to: "/stories", label: "Stories", end: false, icon: BookOpenIcon },
   { to: "/share", label: "Share", end: false, icon: DocumentArrowDownIcon },
+];
+
+const productLinks = [
+  { to: "/app-spread", label: "App spread", end: false, icon: DevicePhoneMobileIcon },
 ];
 
 function BrandMark({ compact }: { compact?: boolean }) {
@@ -129,6 +134,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <NavSection
           title="Briefing"
           links={briefingLinks}
+          onNavigate={() => setMobileOpen(false)}
+        />
+        <NavSection
+          title="Product"
+          links={productLinks}
           onNavigate={() => setMobileOpen(false)}
         />
       </nav>
