@@ -106,19 +106,19 @@ function MetricBox({ metric, priorLabel }: { metric: MetricYoY; priorLabel: stri
 
   return (
     <div className="flex min-h-[7.25rem] flex-col rounded-xl border border-slate-200/80 bg-gradient-to-br from-white to-slate-50/80 p-3 shadow-dash-sm">
-      <p className="text-xs font-medium leading-snug text-slate-600">{shortLabel(metric)}</p>
-      <p className="mt-2 font-display text-2xl font-extrabold tracking-tight text-ink-900 tabular-nums">
+      <p className="text-sm font-medium leading-snug text-slate-700">{shortLabel(metric)}</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
         {fmt(metric.current, metric.key)}
       </p>
-      <div className="mt-auto space-y-1 pt-3 text-xs">
-        <div className="flex justify-between gap-2 text-slate-500">
+      <div className="mt-auto space-y-1 pt-3 text-sm">
+        <div className="flex justify-between gap-2 text-slate-600">
           <span>{priorLabel}</span>
-          <span className="font-medium tabular-nums text-slate-700">
+          <span className="font-medium tabular-nums text-slate-800">
             {fmt(metric.prior_year, metric.key)}
           </span>
         </div>
         <div className="flex justify-between gap-2">
-          <span className="text-slate-500">YoY</span>
+          <span className="text-slate-600">YoY</span>
           <span className={`font-semibold tabular-nums ${changeCls}`}>{fmtPct(metric.change_pct)}</span>
         </div>
       </div>
@@ -156,10 +156,10 @@ export function RegionalMiniDashboard({ card }: { card: RegionalDashboard }) {
     >
       <header className="border-b border-slate-100/90 bg-gradient-to-r from-slate-50/80 to-transparent px-4 py-3.5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-display text-lg font-bold tracking-tight text-ink-900">{card.region}</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{card.region}</h3>
           <YoYTrendBadge summary={card.yoy_summary} />
         </div>
-        <p className="mt-1.5 text-xs text-slate-500">
+        <p className="mt-1.5 text-sm text-slate-600">
           {formatQuarterLabel(card.quarter_end)} vs {priorLabel} · {card.row_count} engagements
         </p>
       </header>
@@ -190,7 +190,7 @@ export function GlobalYoYSummary({
       className={`dash-panel-solid overflow-hidden border-l-4 ${trendStyle.border}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100/90 bg-gradient-to-r from-slate-50/80 to-transparent px-4 py-2.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <span className="text-sm font-medium text-slate-700">
           Overall year-over-year
         </span>
         <YoYTrendBadge summary={summary} />

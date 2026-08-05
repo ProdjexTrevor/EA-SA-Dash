@@ -128,7 +128,7 @@ export function SortableTable<T>({
                     <th
                       key={h.id}
                       style={meta?.minWidth ? { minWidth: meta.minWidth, width: meta.minWidth } : undefined}
-                      className={`${cellPad} text-[11px] font-bold uppercase tracking-wide text-slate-500 align-bottom ${
+                      className={`${cellPad} text-sm font-semibold text-slate-700 align-bottom ${
                         meta?.nowrap !== false ? "whitespace-nowrap" : ""
                       } ${align === "right" ? "text-right" : "text-left"} ${
                         i === stickyIdx ? stickyTh : ""
@@ -170,7 +170,7 @@ export function SortableTable<T>({
                     <td
                       key={cell.id}
                       style={meta?.minWidth ? { minWidth: meta.minWidth, width: meta.minWidth } : undefined}
-                      className={`${cellPad} text-slate-700 ${rowAlign} ${
+                      className={`${cellPad} text-[15px] text-slate-800 ${rowAlign} ${
                         meta?.nowrap ? "whitespace-nowrap" : ""
                       } ${align === "right" ? "text-right tabular-nums" : "text-left"} ${
                         i === stickyIdx ? `font-medium text-slate-900 ${stickyTd}` : ""

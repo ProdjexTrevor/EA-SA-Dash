@@ -9,12 +9,28 @@
 
   body {
     font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
     background-color: #eef2f1;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
     color: #0f172a;
+    line-height: 1.3;
+  }
+
+  p {
+    color: #334155;
   }
 
   ::selection {
-    background: rgba(16, 185, 129, 0.25);
+    background: rgba(16, 185, 129, 0.22);
   }
 }
 
@@ -28,22 +44,22 @@
     pointer-events: none;
     position: absolute;
     inset: 0;
-    opacity: 0.4;
+    opacity: 0.18;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
     background-size: 180px;
     mix-blend-mode: multiply;
   }
 
   .dash-panel {
-    @apply relative rounded-2xl border border-white/70 bg-white/80 shadow-dash backdrop-blur-sm;
+    @apply relative rounded-2xl border border-slate-200 bg-white shadow-dash;
   }
 
   .dash-panel-solid {
-    @apply relative rounded-2xl border border-slate-200/80 bg-white shadow-dash;
+    @apply relative rounded-2xl border border-slate-200 bg-white shadow-dash;
   }
 
   .dash-stat {
-    @apply relative overflow-hidden rounded-2xl border border-white/80 bg-white/90 p-4 shadow-dash backdrop-blur-sm transition duration-300 sm:p-5;
+    @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-dash transition duration-200 sm:p-5;
   }
 
   .dash-stat::after {
@@ -52,7 +68,7 @@
     inset: auto 0 0 0;
     height: 3px;
     background: linear-gradient(90deg, #10b981, #0e7490 55%, #f59e0b);
-    opacity: 0.85;
+    opacity: 0.9;
   }
 
   .dash-stat:hover {
@@ -60,19 +76,19 @@
   }
 
   .dash-stat-good {
-    @apply border-emerald-200/70 bg-gradient-to-br from-white to-emerald-50/80;
+    @apply border-emerald-200 bg-white;
   }
 
   .dash-stat-warn {
-    @apply border-amber-200/70 bg-gradient-to-br from-white to-amber-50/70;
+    @apply border-amber-200 bg-white;
   }
 
   .dash-stat-bad {
-    @apply border-red-200/70 bg-gradient-to-br from-white to-red-50/70;
+    @apply border-red-200 bg-white;
   }
 
   .dash-nav-link {
-    @apply relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-emerald-100/75 transition duration-200;
+    @apply relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[15px] font-medium text-white/90 transition duration-150;
   }
 
   .dash-nav-link:hover {
@@ -80,15 +96,15 @@
   }
 
   .dash-nav-link-active {
-    @apply bg-gradient-to-r from-emerald-500/25 to-teal-400/10 text-white shadow-glow ring-1 ring-emerald-400/30;
+    @apply bg-white/15 text-white shadow-glow ring-1 ring-white/20;
   }
 
   .dash-table-shell {
-    @apply overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-dash;
+    @apply overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-dash;
   }
 
   .dash-input {
-    @apply rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 text-sm shadow-dash-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
+    @apply rounded-xl border border-slate-300 bg-white px-3 py-2 text-[15px] text-slate-800 shadow-dash-sm outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
   }
 
   .dash-btn {
@@ -96,11 +112,23 @@
   }
 
   .dash-btn-primary {
-    @apply dash-btn bg-gradient-to-b from-brand-500 to-brand-600 text-white shadow-dash-sm hover:from-brand-400 hover:to-brand-600 hover:shadow-glow;
+    @apply dash-btn bg-brand-600 text-white shadow-dash-sm hover:bg-brand-700;
   }
 
   .dash-btn-ghost {
-    @apply dash-btn border border-slate-200/90 bg-white/80 text-slate-700 shadow-dash-sm hover:border-brand-200 hover:bg-brand-50/50 hover:text-brand-900;
+    @apply dash-btn border border-slate-300 bg-white text-slate-800 shadow-dash-sm hover:border-brand-300 hover:bg-brand-50;
+  }
+
+  .dash-label {
+    @apply text-sm font-medium text-slate-600;
+  }
+
+  .dash-muted {
+    @apply text-sm text-slate-600;
+  }
+
+  .dash-heading {
+    @apply text-slate-900 font-semibold;
   }
 
   .stagger-1 {
@@ -129,9 +157,26 @@
   }
 }
 
-/* Tremor metric polish inside our cards */
+/* Tremor defaults — prefer plain readable text */
 .tremor-Card-root {
-  @apply !rounded-2xl !border-slate-200/80 !shadow-dash;
+  @apply !rounded-2xl !border-slate-200 !shadow-dash !bg-white;
+}
+
+.tremor-Metric-root {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+.tremor-Text-root {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+.tremor-Title-root {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
 }
 
 @media print {
@@ -154,7 +199,6 @@
   .dash-stat,
   .dash-table-shell {
     box-shadow: none !important;
-    backdrop-filter: none !important;
     background: white !important;
   }
 }

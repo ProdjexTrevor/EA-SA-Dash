@@ -615,18 +615,18 @@ export function ManagementPage() {
             <div className="space-y-4">
               {missing.slice(0, 12).map((rep) => (
                 <div key={rep.key} className="dash-panel-solid p-4">
-                  <h3 className="mb-3 font-display font-bold text-ink-900">{rep.key}</h3>
+                  <h3 className="mb-3 text-base font-semibold text-slate-900">{rep.key}</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {rep.fields.slice(0, 8).map((f) => (
                       <div key={f.field} className="text-sm">
-                        <p className="text-slate-500">{f.label}</p>
+                        <p className="text-sm text-slate-600">{f.label}</p>
                         <p
-                          className={`font-semibold tabular-nums ${
-                            f.missing_pct > 50 ? "text-amber-700" : "text-slate-800"
+                          className={`text-base font-semibold tabular-nums ${
+                            f.missing_pct > 50 ? "text-amber-800" : "text-slate-900"
                           }`}
                         >
                           {f.missing_pct}% missing
-                          <span className="block font-normal text-xs text-slate-400">
+                          <span className="block font-normal text-sm text-slate-600">
                             {f.missing_count} of {f.total_count} lines
                           </span>
                         </p>

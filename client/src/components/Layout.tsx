@@ -9,7 +9,7 @@ import {
   ScaleIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Badge, Metric, Text } from "@tremor/react";
+import { Badge } from "@tremor/react";
 import { formatQuarterLabel } from "../lib/quarters";
 
 const reportLinks = [
@@ -28,15 +28,13 @@ function BrandMark({ compact }: { compact?: boolean }) {
         aria-hidden
       >
         <span className="absolute inset-1 rounded-[0.65rem] border border-white/25" />
-        <span className="font-display text-sm font-extrabold tracking-tight text-white">EA</span>
+        <span className="text-sm font-bold tracking-tight text-white">EA</span>
         <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-soft-pulse" />
       </div>
       <div className="min-w-0">
-        <p className="font-display text-lg font-bold leading-tight tracking-tight text-white">
-          EA-SA Dash
-        </p>
+        <p className="text-lg font-bold leading-tight text-white">EA-SA Dash</p>
         {!compact && (
-          <p className="mt-0.5 text-[11px] font-medium leading-snug text-emerald-100/65">
+          <p className="mt-1 text-sm leading-snug text-white/80">
             East Africa · Southern Africa · The Moon
           </p>
         )}
@@ -56,9 +54,7 @@ function NavSection({
 }) {
   return (
     <div className="mb-5">
-      <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-200/45">
-        {title}
-      </p>
+      <p className="mb-2 px-3 text-sm font-semibold text-white/70">{title}</p>
       <div className="space-y-1">
         {links.map((l) => {
           const Icon = l.icon;
@@ -72,7 +68,7 @@ function NavSection({
                 `dash-nav-link ${isActive ? "dash-nav-link-active" : ""}`
               }
             >
-              <Icon className="h-4.5 w-4.5 h-4 w-4 shrink-0 opacity-90" />
+              <Icon className="h-4 w-4 shrink-0" />
               <span>{l.label}</span>
             </NavLink>
           );
@@ -109,11 +105,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
       </nav>
       <div className="relative border-t border-white/10 px-4 py-4">
-        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-200/50">
-            Scope
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-emerald-50/80">
+        <div className="rounded-xl border border-white/15 bg-white/10 px-3 py-3">
+          <p className="text-sm font-semibold text-white/80">Scope</p>
+          <p className="mt-1 text-sm leading-relaxed text-white/85">
             Reads <span className="font-semibold text-white">Dash_*</span> tables only — production
             masters stay untouched.
           </p>
@@ -166,16 +160,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export function PageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-6 animate-fade-up print:mb-4">
-      <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-brand-700/80">
-        Field intelligence
-      </p>
-      <h2 className="font-display text-2xl font-extrabold tracking-tight text-ink-900 sm:text-3xl">
-        {title}
-      </h2>
+      <h2 className="text-2xl font-bold text-slate-900 sm:text-[1.75rem]">{title}</h2>
       {subtitle && (
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-          {subtitle}
-        </p>
+        <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-slate-700">{subtitle}</p>
       )}
     </div>
   );
@@ -191,8 +178,8 @@ export function QuarterSelect({
   onChange: (d: string) => void;
 }) {
   return (
-    <label className="inline-flex flex-col gap-1 text-sm print:hidden sm:flex-row sm:items-center sm:gap-2">
-      <span className="font-semibold text-slate-600">Reporting quarter</span>
+    <label className="inline-flex flex-col gap-1 text-[15px] print:hidden sm:flex-row sm:items-center sm:gap-2">
+      <span className="font-medium text-slate-700">Reporting quarter</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className="dash-input min-w-[10rem]">
         {options.map((o) => (
           <option key={o.date} value={o.date}>
@@ -214,11 +201,11 @@ export function SeverityBadge({ severity }: { severity: "critical" | "warning" }
 
 export function HealthScoreRing({ score }: { score: number }) {
   const color =
-    score >= 90 ? "text-brand-600" : score >= 75 ? "text-amber-600" : "text-red-600";
+    score >= 90 ? "text-brand-700" : score >= 75 ? "text-amber-700" : "text-red-700";
   return (
-    <div className={`font-display text-4xl font-extrabold tabular-nums ${color}`}>
+    <div className={`text-4xl font-bold tabular-nums ${color}`}>
       {score}
-      <span className="text-lg font-medium text-slate-400">%</span>
+      <span className="text-lg font-medium text-slate-500">%</span>
     </div>
   );
 }
@@ -244,11 +231,11 @@ export function StatCard({
   };
   return (
     <div className={`dash-stat ${tones[tone]} ${className}`}>
-      <Text className="!text-xs !font-bold !uppercase !tracking-wide !text-slate-500">{label}</Text>
-      <Metric className="!mt-2 !font-display !text-2xl !font-extrabold !tracking-tight !text-ink-900 sm:!text-[1.65rem]">
+      <p className="text-sm font-medium text-slate-600">{label}</p>
+      <p className="mt-1.5 text-2xl font-bold tabular-nums text-slate-900 sm:text-[1.65rem]">
         {value}
-      </Metric>
-      {hint && <p className="mt-1.5 text-xs leading-snug text-slate-500">{hint}</p>}
+      </p>
+      {hint && <p className="mt-1.5 text-sm leading-snug text-slate-600">{hint}</p>}
     </div>
   );
 }
@@ -259,17 +246,17 @@ export function LoadingBlock() {
       <div className="mx-auto mb-3 h-1.5 w-32 overflow-hidden rounded-full bg-slate-100">
         <div className="h-full w-1/2 animate-shimmer rounded-full bg-gradient-to-r from-transparent via-brand-400 to-transparent bg-[length:200%_100%]" />
       </div>
-      <p className="text-sm font-medium text-slate-500">Loading report…</p>
+      <p className="text-[15px] text-slate-600">Loading report…</p>
     </div>
   );
 }
 
 export function ErrorBlock({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-white p-6 text-red-900 shadow-dash">
-      <p className="font-display text-lg font-bold">Could not load this report</p>
-      <p className="mt-1 text-sm text-red-800/90">{message}</p>
-      <p className="mt-2 text-sm text-red-700">Check your connection and try again.</p>
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-900 shadow-dash">
+      <p className="text-lg font-semibold">Could not load this report</p>
+      <p className="mt-1 text-[15px] text-red-800">{message}</p>
+      <p className="mt-2 text-[15px] text-red-800">Check your connection and try again.</p>
     </div>
   );
 }
