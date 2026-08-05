@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.local
+client/.env.local
+lib/vercel-api.cjs
+lib/vercel-api.cjs.map
+api/index.js.map
+*.log
+.DS_Store
+*.tsbuildinfo
+reports/
+
+# keep examples
+!.env.example
+!client/.env.example

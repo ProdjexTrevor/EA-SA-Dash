@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Inter, system-ui, sans-serif;
+}
+
+@media print {
+  aside,
+  header.md\\:hidden,
+  nav,
+  button,
+  [role="tablist"] {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
