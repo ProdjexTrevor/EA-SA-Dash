@@ -3,6 +3,7 @@ import {
   Circle,
   CircleMarker,
   MapContainer,
+  Pane,
   Popup,
   TileLayer,
   Tooltip,
@@ -18,6 +19,38 @@ import {
   StatCard,
 } from "../components/Layout";
 import { formatQuarterLabel, normalizeQuarterDate } from "../lib/quarters";
+
+/** Free basemap sources (no API key). Place labels work best on *_nolabels bases. */
+type BasemapId = "voyager_plain" | "positron_plain" | "osm" | "esri_imagery";
+
+const BASEMAPS: Record<
+  BasemapId,
+  { label: string; url: string; attribution: string; maxZoom?: number }
+> = {
+  voyager_plain: {
+    label: "Voyager (no labels)",
+    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  },
+  positron_plain: {
+    label: "Light gray (no labels)",
+    url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  },
+  osm: {
+    label: "OpenStreetMap (labels included)",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  esri_imagery: {
+    label: "Satellite imagery",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri",
+    maxZoom: 19,
+  },
+};
 
 function scoreColor(score: number): string {
   if (score >= 75) return "#047857";
@@ -114,7 +147,7 @@ function DetailPanel({
         </div>
         <div className="rounded-lg bg-slate-50 p-2">
           <dt className="font-medium text-slate-700">Coords</dt>
-          <dd className="font-bold tabular-nums text-slate-900 text-xs">
+          <dd className="text-xs font-bold tabular-nums text-slate-900">
             {point.latitude.toFixed(3)}, {point.longitude.toFixed(3)}
           </dd>
         </div>
@@ -163,6 +196,10 @@ export function HealthMapPage() {
   const [selected, setSelected] = useState<HealthMapPoint | null>(null);
   const [showRadii, setShowRadii] = useState(true);
   const [regionFilter, setRegionFilter] = useState("");
+  const [basemap, setBasemap] = useState<BasemapId>("voyager_plain");
+  const [showPlaceLabels, setShowPlaceLabels] = useState(true);
+  const [showBoundaries, setShowBoundaries] = useState(false);
+  const [showRoads, setShowRoads] = useState(false);
 
   useEffect(() => {
     api
@@ -204,12 +241,14 @@ export function HealthMapPage() {
     return points.filter((p) => p.region === regionFilter);
   }, [points, regionFilter]);
 
+  const base = BASEMAPS[basemap];
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
         <PageHeader
           title="Health Map"
-          subtitle="DMM health scores on a world map. Circle size is the model miles a healthy movement can spread — compressed by population density."
+          subtitle="DMM health scores on a world map. Turn on place-name overlays for African towns and villages; zoom in for denser labels."
         />
         {quarters.length > 0 && (
           <QuarterSelect value={quarter} options={quarters} onChange={setQuarter} />
@@ -242,6 +281,49 @@ export function HealthMapPage() {
             </option>
           ))}
         </select>
+
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+          Basemap
+          <select
+            className="dash-input"
+            value={basemap}
+            onChange={(e) => setBasemap(e.target.value as BasemapId)}
+          >
+            {(Object.keys(BASEMAPS) as BasemapId[]).map((id) => (
+              <option key={id} value={id}>
+                {BASEMAPS[id].label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <input
+            type="checkbox"
+            checked={showPlaceLabels}
+            onChange={(e) => setShowPlaceLabels(e.target.checked)}
+            className="rounded border-slate-300 text-brand-600"
+          />
+          Towns &amp; villages
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <input
+            type="checkbox"
+            checked={showBoundaries}
+            onChange={(e) => setShowBoundaries(e.target.checked)}
+            className="rounded border-slate-300 text-brand-600"
+          />
+          Boundaries &amp; places
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
+          <input
+            type="checkbox"
+            checked={showRoads}
+            onChange={(e) => setShowRoads(e.target.checked)}
+            className="rounded border-slate-300 text-brand-600"
+          />
+          Roads
+        </label>
         <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
           <input
             type="checkbox"
@@ -249,11 +331,8 @@ export function HealthMapPage() {
             onChange={(e) => setShowRadii(e.target.checked)}
             className="rounded border-slate-300 text-brand-600"
           />
-          Show spread radii
+          Spread radii
         </label>
-        <span className="text-sm text-slate-700">
-          Quarter: {quarter ? formatQuarterLabel(quarter) : "—"}
-        </span>
       </div>
 
       {error && <ErrorBlock message={error} />}
@@ -263,74 +342,113 @@ export function HealthMapPage() {
         <div className="h-[min(70vh,640px)] w-full bg-slate-100">
           {!loading && visible.length > 0 && (
             <MapContainer
+              key={basemap}
               center={[0, 32]}
               zoom={4}
               className="h-full w-full"
               scrollWheelZoom
               style={{ background: "#e2e8f0" }}
             >
+              {/* Base land/imagery */}
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution={base.attribution}
+                url={base.url}
+                maxZoom={base.maxZoom ?? 19}
               />
+
+              {/* Roads under labels */}
+              {showRoads && (
+                <Pane name="roads" style={{ zIndex: 350 }}>
+                  <TileLayer
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+                    attribution="Roads &copy; Esri"
+                    opacity={0.75}
+                  />
+                </Pane>
+              )}
+
+              {/* Admin lines + place names (county/province scale when zoomed) */}
+              {showBoundaries && (
+                <Pane name="boundaries" style={{ zIndex: 400 }}>
+                  <TileLayer
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                    attribution="Boundaries &amp; places &copy; Esri"
+                    opacity={0.9}
+                  />
+                </Pane>
+              )}
+
+              {/* City / town / village names from OSM via CARTO */}
+              {showPlaceLabels && basemap !== "osm" && (
+                <Pane name="labels" style={{ zIndex: 450 }}>
+                  <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png"
+                    attribution="Place labels &copy; OSM / CARTO"
+                    opacity={0.95}
+                  />
+                </Pane>
+              )}
+
               <FitBounds points={visible} />
-              {visible.map((p) => {
-                const color = scoreColor(p.health_score);
-                const radiusM = p.spread_radius_mi * 1609.34;
-                return (
-                  <Fragment key={p.engagement_id}>
-                    {showRadii && p.spread_radius_mi > 0 && (
-                      <Circle
+              <Pane name="health" style={{ zIndex: 500 }}>
+                {visible.map((p) => {
+                  const color = scoreColor(p.health_score);
+                  const radiusM = p.spread_radius_mi * 1609.34;
+                  return (
+                    <Fragment key={p.engagement_id}>
+                      {showRadii && p.spread_radius_mi > 0 && (
+                        <Circle
+                          center={[p.latitude, p.longitude]}
+                          radius={radiusM}
+                          pathOptions={{
+                            color,
+                            fillColor: color,
+                            fillOpacity: 0.12,
+                            weight: 1,
+                            opacity: 0.55,
+                          }}
+                          eventHandlers={{ click: () => setSelected(p) }}
+                        />
+                      )}
+                      <CircleMarker
                         center={[p.latitude, p.longitude]}
-                        radius={radiusM}
+                        radius={6 + p.heat * 8}
                         pathOptions={{
-                          color,
-                          fillColor: color,
-                          fillOpacity: 0.12,
+                          color: "#0f172a",
                           weight: 1,
-                          opacity: 0.55,
+                          fillColor: color,
+                          fillOpacity: 0.9,
                         }}
                         eventHandlers={{ click: () => setSelected(p) }}
-                      />
-                    )}
-                    <CircleMarker
-                      center={[p.latitude, p.longitude]}
-                      radius={6 + p.heat * 8}
-                      pathOptions={{
-                        color: "#0f172a",
-                        weight: 1,
-                        fillColor: color,
-                        fillOpacity: 0.9,
-                      }}
-                      eventHandlers={{ click: () => setSelected(p) }}
-                    >
-                      <Tooltip direction="top" offset={[0, -4]} opacity={1}>
-                        <span className="font-semibold">
-                          {p.engagement_name} · {p.health_score}
-                        </span>
-                      </Tooltip>
-                      <Popup>
-                        <div className="min-w-[12rem] text-sm">
-                          <p className="font-bold">{p.engagement_name}</p>
-                          <p>
-                            Score {p.health_score} · {p.classification}
-                          </p>
-                          <p>
-                            Spread {p.spread_radius_mi} mi · dens {p.pop_density_per_km2}/km²
-                          </p>
-                          <button
-                            type="button"
-                            className="mt-2 font-semibold text-emerald-800 underline"
-                            onClick={() => setSelected(p)}
-                          >
-                            Open details
-                          </button>
-                        </div>
-                      </Popup>
-                    </CircleMarker>
-                  </Fragment>
-                );
-              })}
+                      >
+                        <Tooltip direction="top" offset={[0, -4]} opacity={1}>
+                          <span className="font-semibold">
+                            {p.engagement_name} · {p.health_score}
+                          </span>
+                        </Tooltip>
+                        <Popup>
+                          <div className="min-w-[12rem] text-sm">
+                            <p className="font-bold">{p.engagement_name}</p>
+                            <p>
+                              Score {p.health_score} · {p.classification}
+                            </p>
+                            <p>
+                              Spread {p.spread_radius_mi} mi · dens {p.pop_density_per_km2}/km²
+                            </p>
+                            <button
+                              type="button"
+                              className="mt-2 font-semibold text-emerald-800 underline"
+                              onClick={() => setSelected(p)}
+                            >
+                              Open details
+                            </button>
+                          </div>
+                        </Popup>
+                      </CircleMarker>
+                    </Fragment>
+                  );
+                })}
+              </Pane>
             </MapContainer>
           )}
           {!loading && !visible.length && (
@@ -345,9 +463,115 @@ export function HealthMapPage() {
         {selected && <DetailPanel point={selected} onClose={() => setSelected(null)} />}
       </div>
 
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
+        <p className="font-bold text-slate-900">Map overlays available for Africa</p>
+        <p className="mt-1 text-slate-700">
+          Use the toggles above. Place names densify as you zoom (town → village). True
+          county/ward polygons need a boundary dataset (below).
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[36rem] text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-700">
+                <th className="py-2 pr-3 font-semibold">Option</th>
+                <th className="py-2 pr-3 font-semibold">What you get</th>
+                <th className="py-2 pr-3 font-semibold">Cost / setup</th>
+                <th className="py-2 font-semibold">Status on this map</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              <tr>
+                <td className="py-2 pr-3 font-medium">CARTO / OSM labels</td>
+                <td className="py-2 pr-3">City, town, village names from OpenStreetMap</td>
+                <td className="py-2 pr-3">Free tile overlay, no key</td>
+                <td className="py-2">On — “Towns &amp; villages”</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-3 font-medium">Esri Boundaries &amp; Places</td>
+                <td className="py-2 pr-3">Admin lines + place names at mid zoom</td>
+                <td className="py-2 pr-3">Free raster reference tiles*</td>
+                <td className="py-2">On — “Boundaries &amp; places”</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-3 font-medium">Esri Transportation</td>
+                <td className="py-2 pr-3">Major roads for context</td>
+                <td className="py-2 pr-3">Free raster reference tiles*</td>
+                <td className="py-2">On — “Roads”</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-3 font-medium">
+                  <a
+                    className="text-emerald-800 underline"
+                    href="https://www.geoboundaries.org/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    geoBoundaries
+                  </a>
+                </td>
+                <td className="py-2 pr-3">
+                  True county/district polygons (ADM1–ADM2, sometimes ADM3) per African country
+                </td>
+                <td className="py-2 pr-3">Free CC BY — GeoJSON download / API</td>
+                <td className="py-2">Not loaded yet (file size)</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-3 font-medium">
+                  <a
+                    className="text-emerald-800 underline"
+                    href="https://data.humdata.org/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    HDX / OCHA COD
+                  </a>
+                </td>
+                <td className="py-2 pr-3">Humanitarian admin boundaries by country</td>
+                <td className="py-2 pr-3">Free; download per country</td>
+                <td className="py-2">Not loaded yet</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-3 font-medium">
+                  <a
+                    className="text-emerald-800 underline"
+                    href="https://www.geonames.org/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    GeoNames
+                  </a>{" "}
+                  / place NDJSON
+                </td>
+                <td className="py-2 pr-3">Point localities (town/village) you can seed into Dash_*</td>
+                <td className="py-2 pr-3">Free with attribution</td>
+                <td className="py-2">Optional next step</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-3 font-medium">Protomaps / MapLibre / MapTiler</td>
+                <td className="py-2 pr-3">Vector places + boundaries, best village density</td>
+                <td className="py-2 pr-3">Free tier or self-host PMTiles</td>
+                <td className="py-2">Not integrated</td>
+              </tr>
+              <tr>
+                <td className="py-2 pr-3 font-medium">GADM</td>
+                <td className="py-2 pr-3">Detailed admin polygons globally</td>
+                <td className="py-2 pr-3">Free for non-commercial; license limits</td>
+                <td className="py-2">Avoid unless license OK</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-xs text-slate-600">
+          *Esri public tile services are convenient for demos; check Esri’s terms if you go
+          production. For county polygons we recommend seed into{" "}
+          <code className="rounded bg-slate-100 px-1">Dash_*</code> from geoBoundaries (still
+          Dash-only).
+        </p>
+      </div>
+
       {legend && (
         <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
-          <p className="font-bold text-slate-900">How to read the map</p>
+          <p className="font-bold text-slate-900">Health layer</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>{legend.heat}</li>
             <li>{legend.spread}</li>
