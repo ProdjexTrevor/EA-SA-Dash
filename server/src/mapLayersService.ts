@@ -1,6 +1,6 @@
 import { query, num } from "./db.js";
 
-export type AdminLevel = 1 | 2;
+export type AdminLevel = 1 | 2 | 3 | 4;
 
 export type AdminBoundaryFeature = {
   type: "Feature";

@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 """
-Seed Dash_AdminBoundaries (geoBoundaries ADM1/ADM2 simplified) and
+Seed Dash_AdminBoundaries (geoBoundaries ADM1–ADM4 simplified when available) and
 Dash_PlaceLabels (Natural Earth major places for EA/SA countries).
 
 ONLY writes Dash_* tables. Attribution: geoBoundaries (CC BY 4.0), Natural Earth.
+
+Usage:
+  python scripts/seed_dash_map_layers.py              # admin 1–4 + places
+  python scripts/seed_dash_map_layers.py --levels 3,4  # village tiers only
+  python scripts/seed_dash_map_layers.py --admin-only
+  python scripts/seed_dash_map_layers.py --places-only
 """
 from __future__ import annotations
 
+import argparse
 import json
 import ssl
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -20,6 +28,7 @@ sys.path.insert(0, str(ROOT.parent / "scripts"))
 from country_data_common import connect
 
 UA = "EA-SA-Dash-seed/1.0 (Health Map; attribution: geoBoundaries CC-BY + Natural Earth)"
+FETCH_TIMEOUT = 180
 
 # ISO3 / country name for Dash regions
 COUNTRIES: list[tuple[str, str, str]] = [
@@ -59,7 +68,7 @@ CTX = ssl.create_default_context()
 
 def fetch_json(url: str) -> Any:
     req = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=120, context=CTX) as resp:
+    with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT, context=CTX) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
@@ -71,10 +80,16 @@ def feature_name(props: dict) -> str:
         "NAME",
         "NAME_1",
         "NAME_2",
+        "NAME_3",
+        "NAME_4",
         "ADM1_EN",
         "ADM2_EN",
+        "ADM3_EN",
+        "ADM4_EN",
         "admin1Name",
         "admin2Name",
+        "admin3Name",
+        "admin4Name",
     ):
         v = props.get(k)
         if v:
@@ -83,7 +98,22 @@ def feature_name(props: dict) -> str:
 
 
 def feature_id(props: dict, fallback: str) -> str:
-    for k in ("shapeID", "shapeGroup", "GID_1", "GID_2", "ADM1_PCODE", "ADM2_PCODE", "HASC_1", "HASC_2"):
+    for k in (
+        "shapeID",
+        "shapeGroup",
+        "GID_1",
+        "GID_2",
+        "GID_3",
+        "GID_4",
+        "ADM1_PCODE",
+        "ADM2_PCODE",
+        "ADM3_PCODE",
+        "ADM4_PCODE",
+        "HASC_1",
+        "HASC_2",
+        "HASC_3",
+        "HASC_4",
+    ):
         v = props.get(k)
         if v:
             return str(v)[:100]
@@ -165,11 +195,13 @@ def ensure_tables(cur) -> None:
     )
 
 
-def seed_admin(cur) -> int:
-    cur.execute("DELETE FROM Dash_AdminBoundaries")
+def seed_admin(cur, levels: tuple[int, ...] = (1, 2, 3, 4)) -> int:
+    """Replace only the requested adm_level rows (safe partial re-seed)."""
+    for level in levels:
+        cur.execute("DELETE FROM Dash_AdminBoundaries WHERE adm_level = %s", (level,))
     total = 0
     for iso, cname, region in COUNTRIES:
-        for level in (1, 2):
+        for level in levels:
             adm = f"ADM{level}"
             print(f"  Fetching {iso} {adm}…")
             try:
@@ -179,6 +211,12 @@ def seed_admin(cur) -> int:
                     print(f"    skip {iso} {adm}: no simplified URL")
                     continue
                 fc = fetch_json(url)
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    print(f"    skip {iso} {adm}: not published")
+                else:
+                    print(f"    ERROR {iso} {adm}: HTTP {e.code}")
+                continue
             except Exception as e:
                 print(f"    ERROR {iso} {adm}: {e}")
                 continue
@@ -326,24 +364,54 @@ def seed_place_fallbacks(cur) -> int:
     return n
 
 
+def parse_levels(s: str) -> tuple[int, ...]:
+    parts = []
+    for p in s.split(","):
+        p = p.strip()
+        if not p:
+            continue
+        n = int(p)
+        if n < 1 or n > 4:
+            raise SystemExit(f"Invalid adm level {n}; use 1–4")
+        parts.append(n)
+    if not parts:
+        raise SystemExit("No adm levels specified")
+    return tuple(sorted(set(parts)))
+
+
 def main() -> None:
+    ap = argparse.ArgumentParser(description="Seed Dash map layers (admin polys + places)")
+    ap.add_argument(
+        "--levels",
+        default="1,2,3,4",
+        help="Comma-separated geoBoundaries levels to re-seed (default 1,2,3,4)",
+    )
+    ap.add_argument("--admin-only", action="store_true", help="Skip place labels")
+    ap.add_argument("--places-only", action="store_true", help="Skip admin boundaries")
+    args = ap.parse_args()
+    levels = parse_levels(args.levels)
+
     cn = connect()
     cur = cn.cursor()
     print("Creating Dash_AdminBoundaries + Dash_PlaceLabels…")
     ensure_tables(cur)
     cn.commit()
 
-    print("Seeding admin boundaries (geoBoundaries simplified ADM1+ADM2)…")
-    n_adm = seed_admin(cur)
-    cn.commit()
-    print(f"  Admin features: {n_adm}")
+    if not args.places_only:
+        print(f"Seeding admin boundaries (geoBoundaries simplified ADM{list(levels)})…")
+        n_adm = seed_admin(cur, levels=levels)
+        cn.commit()
+        print(f"  Admin features written: {n_adm}")
 
-    print("Seeding place labels…")
-    n_pl = seed_places(cur)
-    cn.commit()
-    print(f"  Places: {n_pl}")
+    if not args.admin_only:
+        print("Seeding place labels…")
+        n_pl = seed_places(cur)
+        cn.commit()
+        print(f"  Places: {n_pl}")
 
-    cur.execute("SELECT adm_level, COUNT(*) c FROM Dash_AdminBoundaries GROUP BY adm_level")
+    cur.execute(
+        "SELECT adm_level, COUNT(*) c FROM Dash_AdminBoundaries GROUP BY adm_level ORDER BY adm_level"
+    )
     for r in cur.fetchall():
         print(f"  ADM{r['adm_level']}: {r['c']}")
     cur.execute("SELECT COUNT(*) c FROM Dash_PlaceLabels")

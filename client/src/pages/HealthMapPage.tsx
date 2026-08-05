@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Circle,
   CircleMarker,
@@ -10,6 +10,7 @@ import {
   TileLayer,
   Tooltip,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -109,6 +110,102 @@ type PlaceRow = {
   country_name: string | null;
 };
 
+/** Villages (ADM3/4) only request when zoomed in — full-region payloads are huge. */
+const VILLAGE_MIN_ZOOM = 7;
+
+/**
+ * Load geoBoundaries wards/villages (ADM3 + ADM4) for the current map viewport.
+ * Must render as a child of MapContainer.
+ */
+function VillageBoundaries({
+  enabled,
+  onStatus,
+}: {
+  enabled: boolean;
+  onStatus: (msg: string, count: number) => void;
+}) {
+  const map = useMap();
+  const [fc, setFc] = useState<BoundaryFC | null>(null);
+  const [tick, setTick] = useState(0);
+
+  const load = useCallback(() => {
+    if (!enabled) {
+      setFc(null);
+      onStatus("", 0);
+      return;
+    }
+    const z = map.getZoom();
+    if (z < VILLAGE_MIN_ZOOM) {
+      setFc({ type: "FeatureCollection", features: [] });
+      onStatus(`Zoom ${VILLAGE_MIN_ZOOM}+ for villages`, 0);
+      return;
+    }
+    const b = map.getBounds().pad(0.12);
+    const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+      .map((n) => n.toFixed(4))
+      .join(",");
+    void Promise.all([
+      api.analyticsHealthMapBoundaries({ level: 3, bbox }),
+      api.analyticsHealthMapBoundaries({ level: 4, bbox }).catch(
+        () =>
+          ({
+            type: "FeatureCollection",
+            features: [],
+            meta: { count: 0, source: "", level: 4 },
+          }) as Awaited<ReturnType<typeof api.analyticsHealthMapBoundaries>>
+      ),
+    ])
+      .then(([a3, a4]) => {
+        const features = [...a3.features, ...a4.features] as BoundaryFC["features"];
+        setFc({ type: "FeatureCollection", features });
+        setTick((t) => t + 1);
+        onStatus(features.length ? "" : "No village polys in view", features.length);
+      })
+      .catch(() => {
+        setFc(null);
+        onStatus("Village layer unavailable", 0);
+      });
+  }, [enabled, map, onStatus]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useMapEvents({
+    moveend: () => {
+      if (enabled) load();
+    },
+    zoomend: () => {
+      if (enabled) load();
+    },
+  });
+
+  if (!enabled || !fc || fc.features.length === 0) return null;
+
+  return (
+    <Pane name="adm3" style={{ zIndex: 340 }}>
+      <GeoJSON
+        key={`villages-${tick}-${fc.features.length}`}
+        data={fc as never}
+        style={(feature) => {
+          const lvl = feature?.properties?.adm_level ?? 3;
+          return {
+            color: lvl >= 4 ? "#7c3aed" : "#9a3412",
+            weight: lvl >= 4 ? 0.45 : 0.55,
+            fillColor: lvl >= 4 ? "#a78bfa" : "#f97316",
+            fillOpacity: 0.05,
+            opacity: 0.7,
+          };
+        }}
+        onEachFeature={(feature, layer) => {
+          const n = feature.properties?.shape_name as string | undefined;
+          const lvl = feature.properties?.adm_level as number | undefined;
+          layer.bindTooltip(n ? `${n}${lvl ? ` (ADM${lvl})` : ""}` : "", { sticky: true });
+        }}
+      />
+    </Pane>
+  );
+}
 
 function FitBounds({ points }: { points: HealthMapPoint[] }) {
   const map = useMap();
@@ -253,11 +350,19 @@ export function HealthMapPage() {
   const [showRoads, setShowRoads] = useState(false);
   const [showProvinces, setShowProvinces] = useState(true);
   const [showDistricts, setShowDistricts] = useState(false);
+  const [showVillages, setShowVillages] = useState(false);
   const [showCities, setShowCities] = useState(true);
   const [adm1, setAdm1] = useState<BoundaryFC | null>(null);
   const [adm2, setAdm2] = useState<BoundaryFC | null>(null);
   const [places, setPlaces] = useState<PlaceRow[]>([]);
   const [layerNote, setLayerNote] = useState("");
+  const [villageStatus, setVillageStatus] = useState("");
+  const [villageCount, setVillageCount] = useState(0);
+
+  const onVillageStatus = useCallback((msg: string, count: number) => {
+    setVillageStatus(msg);
+    setVillageCount(count);
+  }, []);
 
   useEffect(() => {
     api
@@ -376,14 +481,15 @@ export function HealthMapPage() {
 
         {(
           [
-            [showProvinces, setShowProvinces, "Provinces"],
-            [showDistricts, setShowDistricts, "Districts"],
-            [showCities, setShowCities, "Towns"],
-            [showPlaceLabels, setShowPlaceLabels, "Labels"],
-            [showBoundaries, setShowBoundaries, "Borders"],
-            [showRoads, setShowRoads, "Roads"],
-            [showRadii, setShowRadii, "Reach"],
-          ] as const
+            [showProvinces, setShowProvinces, "Provinces"] as const,
+            [showDistricts, setShowDistricts, "Districts"] as const,
+            [showVillages, setShowVillages, "Villages"] as const,
+            [showCities, setShowCities, "Towns"] as const,
+            [showPlaceLabels, setShowPlaceLabels, "Labels"] as const,
+            [showBoundaries, setShowBoundaries, "Borders"] as const,
+            [showRoads, setShowRoads, "Roads"] as const,
+            [showRadii, setShowRadii, "Reach"] as const,
+          ]
         ).map(([checked, set, label]) => (
           <label key={label} className="inline-flex items-center gap-1">
             <input
@@ -458,6 +564,8 @@ export function HealthMapPage() {
                   />
                 </Pane>
               )}
+
+              <VillageBoundaries enabled={showVillages} onStatus={onVillageStatus} />
 
               {/* Major towns from Dash_PlaceLabels */}
               {showCities && (
@@ -584,7 +692,7 @@ export function HealthMapPage() {
                 <code className="mx-1 rounded bg-slate-200 px-1">npm run seed:geo</code>
               </p>
               <p>
-                For provinces/districts:{" "}
+                For admin polys:{" "}
                 <code className="mx-1 rounded bg-slate-200 px-1">npm run seed:map-layers</code>
               </p>
             </div>
@@ -593,15 +701,21 @@ export function HealthMapPage() {
         {selected && <DetailPanel point={selected} onClose={() => setSelected(null)} />}
       </div>
 
-      {layerNote && (
+      {(layerNote || showVillages) && (
         <p className="mt-2 text-[11px] text-slate-500">
           {[
             adm1 ? `${adm1.features.length} provinces` : null,
             adm2 ? `${adm2.features.length} districts` : null,
+            showVillages
+              ? villageStatus || (villageCount ? `${villageCount} villages in view` : null)
+              : null,
             places.length ? `${places.length} towns` : null,
           ]
             .filter(Boolean)
             .join(" · ")}
+          {showVillages && (
+            <span className="text-slate-400"> · ADM3/4 when published (not SSD/SDN)</span>
+          )}
         </p>
       )}
 

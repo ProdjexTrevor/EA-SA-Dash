@@ -232,10 +232,10 @@ analyticsRouter.get("/health-map", async (req, res, next) => {
   }
 });
 
-/** Provinces (ADM1) or districts (ADM2) polygons from Dash_AdminBoundaries. */
+/** Provinces (ADM1), districts (ADM2), wards/villages (ADM3), cells (ADM4) from Dash_AdminBoundaries. */
 analyticsRouter.get("/health-map/boundaries", async (req, res, next) => {
   try {
-    const level = z.coerce.number().int().min(1).max(2).parse(req.query.level ?? 1) as 1 | 2;
+    const level = z.coerce.number().int().min(1).max(4).parse(req.query.level ?? 1) as 1 | 2 | 3 | 4;
     const country_iso = req.query.country
       ? z.string().length(3).parse(String(req.query.country).toUpperCase())
       : undefined;

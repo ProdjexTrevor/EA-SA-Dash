@@ -16,6 +16,7 @@
     "seed:dash": "python scripts/create_and_seed_dash_tables.py",
     "seed:geo": "python scripts/seed_dash_engagement_geo.py",
     "seed:map-layers": "python scripts/seed_dash_map_layers.py",
+    "seed:map-villages": "python scripts/seed_dash_map_layers.py --levels 3,4 --admin-only",
     "seed:all-map": "python scripts/seed_dash_engagement_geo.py && python scripts/seed_dash_map_layers.py"
   },
   "dependencies": {

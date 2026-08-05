@@ -496,7 +496,7 @@ export const api = {
   analyticsHealthMap: (date: string) =>
     get<HealthMapResponse>(`/api/analytics/health-map?date=${encodeURIComponent(date)}`),
   analyticsHealthMapBoundaries: (params: {
-    level: 1 | 2;
+    level: 1 | 2 | 3 | 4;
     country?: string;
     bbox?: string;
   }) => {
