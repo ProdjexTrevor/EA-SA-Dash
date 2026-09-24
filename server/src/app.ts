@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import cors from "cors";
 import express from "express";
-import { getPool } from "./db.js";
+import { ping, usesPostgres } from "./db.js";
 import { analyticsRouter } from "./routes/analytics.js";
 import { healthRouter } from "./routes/health.js";
 
@@ -35,8 +35,8 @@ export function createApp(): express.Express {
 
   app.get("/api/health", async (_req, res) => {
     try {
-      await getPool().query("SELECT 1");
-      res.json({ status: "ok", database: "connected" });
+      await ping();
+      res.json({ status: "ok", database: "connected", engine: usesPostgres() ? "postgres" : "mysql" });
     } catch {
       res.status(503).json({ status: "error", database: "disconnected" });
     }

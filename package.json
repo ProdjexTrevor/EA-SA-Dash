@@ -18,13 +18,15 @@
     "seed:map-layers": "python scripts/seed_dash_map_layers.py",
     "seed:map-villages": "python scripts/seed_dash_map_layers.py --levels 3,4 --admin-only",
     "seed:all-map": "python scripts/seed_dash_engagement_geo.py && python scripts/seed_dash_map_layers.py",
-    "seed:app-growth": "python scripts/seed_dash_app_growth.py"
+    "seed:app-growth": "python scripts/seed_dash_app_growth.py",
+    "copy:neon": "python scripts/copy_dash_to_neon.py"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "mysql2": "^3.12.0",
+    "pg": "^8.16.3",
     "zod": "^3.24.1"
   },
   "devDependencies": {

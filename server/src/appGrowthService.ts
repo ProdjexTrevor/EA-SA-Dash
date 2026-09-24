@@ -120,7 +120,7 @@ export async function getAppGrowthOverview(): Promise<{
       FROM Dash_AppUsers u
       LEFT JOIN Dash_AppInvites i ON i.invite_code = u.invite_code
       GROUP BY u.user_id, u.invite_code, u.display_name, u.city, u.country
-      HAVING sent > 0
+      HAVING COUNT(i.invite_id) > 0
       ORDER BY redeemed DESC, sent DESC
       LIMIT 15
       `

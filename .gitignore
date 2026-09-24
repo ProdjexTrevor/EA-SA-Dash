@@ -16,3 +16,5 @@ reports/
 !client/.env.example
 .vercel
 .env*.local
+.neon
+.env.neon

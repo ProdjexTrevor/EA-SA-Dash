@@ -11,7 +11,7 @@ await esbuild.build({
   format: "cjs",
   outfile: "lib/vercel-api.cjs",
   sourcemap: true,
-  external: ["mysql2", "express", "cors", "dotenv", "zod"],
+  external: ["mysql2", "pg", "express", "cors", "dotenv", "zod"],
   footer: {
     js: `
 if (module.exports.default) {

@@ -42,12 +42,33 @@ This **truncates** `Dash_*` tables, re-copies all EA + SA history from productio
 
 ---
 
+## Database
+
+This app reads **`Dash_*` tables** (never production `all_data`).
+
+**Neon (Postgres)** is the intended database for this dashboard. Set `DATABASE_URL` in `.env`:
+
+```
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/neondb?sslmode=require
+```
+
+Copy tables from the live MySQL database:
+
+```powershell
+pip install "psycopg[binary]"
+npm run copy:neon
+```
+
+If `DATABASE_URL` is not set, the API still falls back to `MYSQL_*` (DigitalOcean).
+
+---
+
 ## Local run
 
 ```powershell
 cd EA-SA-Dash
 copy .env.example .env
-# Fill MYSQL_* (same DigitalOcean DB is fine — app only queries Dash_*)
+# Set DATABASE_URL (Neon) or MYSQL_* (DigitalOcean)
 
 npm install
 cd server; npm install; cd ..
@@ -76,7 +97,7 @@ Same pattern as newgendash: client + serverless API.
 
 1. Import this GitHub repo into Vercel.  
 2. Set **Root Directory** to repo root (uses root `vercel.json`).  
-3. Environment variables: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_SSL=true`.  
+3. Environment variables: `DATABASE_URL` (Neon `postgresql://…?sslmode=require`). Optional fallback: `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_SSL=true`.  
 4. Build command: `npm run build:vercel` (if configured in `vercel.json`).
 
 Tell the agent when the Vercel project is linked if you need env / build settings wired up.
