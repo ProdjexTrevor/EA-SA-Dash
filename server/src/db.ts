@@ -182,6 +182,8 @@ export function getPgPool(): pg.Pool {
   pgPool = new pg.Pool({
     connectionString: url,
     max: process.env.VERCEL ? 1 : 10,
+    connectionTimeoutMillis: 15000,
+    idleTimeoutMillis: 10000,
     ssl: url.includes("sslmode=require") || url.includes("neon.tech") ? { rejectUnauthorized: false } : undefined,
   });
   return pgPool;
@@ -192,9 +194,40 @@ export function getPool(): mysql.Pool | pg.Pool {
   return usesPostgres() ? getPgPool() : getMysqlPool();
 }
 
+function isRetryableDbError(err: unknown): boolean {
+  const code = typeof err === "object" && err && "code" in err ? String((err as { code?: string }).code) : "";
+  const msg = err instanceof Error ? err.message : String(err);
+  return /terminat|timeout|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|starting up|remaining connection slots|too many clients|Can't reach database|Connection terminated|connect ECONNREFUSED|57P01|57P03|08006|08001|53300|40001/i.test(
+    `${code} ${msg}`
+  );
+}
+
+async function withDbRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      if (!isRetryableDbError(e) || i === attempts - 1) throw e;
+      if (pgPool) {
+        const dying = pgPool;
+        pgPool = null;
+        try {
+          await dying.end();
+        } catch {
+          /* ignore */
+        }
+      }
+      await new Promise((r) => setTimeout(r, 300 * 2 ** i));
+    }
+  }
+  throw last;
+}
+
 export async function ping(): Promise<void> {
   if (usesPostgres()) {
-    await getPgPool().query("SELECT 1");
+    await withDbRetry(() => getPgPool().query("SELECT 1"));
     return;
   }
   await getMysqlPool().query("SELECT 1");
@@ -203,7 +236,7 @@ export async function ping(): Promise<void> {
 export async function query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
   if (usesPostgres()) {
     const text = mysqlToPostgres(sql);
-    const res = await getPgPool().query(text, params);
+    const res = await withDbRetry(() => getPgPool().query(text, params));
     return res.rows as T[];
   }
   const [rows] = await getMysqlPool().query(sql, params);
